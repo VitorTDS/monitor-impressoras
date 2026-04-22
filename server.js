@@ -111,20 +111,25 @@ function obterDadosSNMP(ip, comunidade) {
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 
 app.get('/api/dashboard', (req, res, next) => {
-    db.all('SELECT * FROM impressoras', [], async (err, rows) => {
+    db.all('SELECT id, nome, ip, modelo, localizacao, comunidade, tipo, material FROM impressoras', [], async (err, rows) => {
         if (err) { console.error(err); return next(err); }
-        const promessas = rows.map(async (imp) => {
-            const snmpData = await obterDadosSNMP(imp.ip, imp.comunidade);
-            return {
-                ...imp,
-                material: imp.material || 'Toner',
-                tipo: imp.tipo || 'Colorido',
-                online: snmpData.online,
-                suprimentos: snmpData.suprimentos
-            };
-        });
-        const resultados = await Promise.all(promessas);
-        res.json(resultados);
+        try {
+            const promessas = rows.map(async (imp) => {
+                const snmpData = await obterDadosSNMP(imp.ip, imp.comunidade);
+                return {
+                    ...imp,
+                    material: imp.material || 'Toner',
+                    tipo: imp.tipo || 'Colorido',
+                    online: snmpData.online,
+                    suprimentos: snmpData.suprimentos
+                };
+            });
+            const resultados = await Promise.all(promessas);
+            res.json(resultados);
+        } catch (e) {
+            console.error(e);
+            next(e);
+        }
     });
 });
 
@@ -135,7 +140,7 @@ app.post('/api/impressoras', (req, res, next) => {
         [nome, ip, modelo, localizacao, comunidade || 'public', tipo || 'Colorido', material || 'Toner'],
         (err) => {
             if (err) { console.error(err); return next(err); }
-            res.json({ sucesso: true });
+            res.status(201).json({ sucesso: true });
         }
     );
 });
@@ -165,14 +170,16 @@ app.put('/api/impressoras/:id', (req, res, next) => {
     });
 });
 
-app.delete('/api/impressoras/:id', (req, res) => {
-    db.run('DELETE FROM impressoras WHERE id = ?', req.params.id, (err) => {
-        res.json({ sucesso: !err });
+app.delete('/api/impressoras/:id', (req, res, next) => {
+    db.run('DELETE FROM impressoras WHERE id = ?', req.params.id, function (err) {
+        if (err) { console.error(err); return next(err); }
+        if (this.changes === 0) return res.status(404).json({ erro: 'Impressora não encontrada' });
+        res.status(204).end();
     });
 });
 
 app.get('/api/estoque', (req, res) => {
-    db.all('SELECT * FROM estoque ORDER BY modelo ASC, estado ASC', [], (err, rows) => {
+    db.all('SELECT id, modelo, insumo, quantidade, estado FROM estoque ORDER BY modelo ASC, estado ASC', [], (err, rows) => {
         res.json(rows || []);
     });
 });
@@ -185,14 +192,16 @@ app.post('/api/estoque', (req, res, next) => {
         [modelo, insumo, quantidade, estado],
         (err) => {
             if (err) { console.error(err); return next(err); }
-            res.json({ sucesso: true });
+            res.status(201).json({ sucesso: true });
         }
     );
 });
 
-app.delete('/api/estoque/:id', (req, res) => {
-    db.run('DELETE FROM estoque WHERE id = ?', req.params.id, (err) => {
-        res.json({ sucesso: !err });
+app.delete('/api/estoque/:id', (req, res, next) => {
+    db.run('DELETE FROM estoque WHERE id = ?', req.params.id, function (err) {
+        if (err) { console.error(err); return next(err); }
+        if (this.changes === 0) return res.status(404).json({ erro: 'Item não encontrado' });
+        res.status(204).end();
     });
 });
 

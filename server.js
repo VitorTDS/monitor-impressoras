@@ -100,12 +100,11 @@ app.post('/api/impressoras', (req, res) => {
         });
 });
 
-// ✅ ROTA ADICIONADA — editar impressora existente
 app.put('/api/impressoras/:id', (req, res) => {
-    const { fabricante, modelo, ip, localizacao } = req.body;
+    const { nome, modelo, ip, localizacao, comunidade, tipo, material } = req.body;
     db.run(
-        `UPDATE impressoras SET nome = ?, modelo = ?, ip = ?, localizacao = ? WHERE id = ?`,
-        [fabricante, modelo, ip, localizacao, req.params.id],
+        `UPDATE impressoras SET nome = ?, modelo = ?, ip = ?, localizacao = ?, comunidade = ?, tipo = ?, material = ? WHERE id = ?`,
+        [nome, modelo, ip, localizacao, comunidade || 'public', tipo || 'Colorido', material || 'Toner', req.params.id],
         function (err) {
             if (err) return res.status(500).json({ erro: err.message });
             if (this.changes === 0) return res.status(404).json({ erro: 'Impressora não encontrada' });
@@ -186,57 +185,14 @@ app.post('/api/impressoras/:id/imprimir', (req, res) => {
         // Monta requisição IPP Print-Job
         function ippAttr(tag, name, value) {
             const nameBuf = Buffer.from(name, 'utf8');
-            if (tag === 0x45) { // uri
-                const valBuf = Buffer.from(value, 'utf8');
-                const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
-                b.writeUInt8(tag, 0);
-                b.writeUInt16BE(nameBuf.length, 1);
-                nameBuf.copy(b, 3);
-                b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
-                valBuf.copy(b, 5 + nameBuf.length);
-                return b;
-            }
-            if (tag === 0x47) { // charset
-                const valBuf = Buffer.from(value, 'utf8');
-                const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
-                b.writeUInt8(tag, 0);
-                b.writeUInt16BE(nameBuf.length, 1);
-                nameBuf.copy(b, 3);
-                b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
-                valBuf.copy(b, 5 + nameBuf.length);
-                return b;
-            }
-            if (tag === 0x48) { // natural-language
-                const valBuf = Buffer.from(value, 'utf8');
-                const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
-                b.writeUInt8(tag, 0);
-                b.writeUInt16BE(nameBuf.length, 1);
-                nameBuf.copy(b, 3);
-                b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
-                valBuf.copy(b, 5 + nameBuf.length);
-                return b;
-            }
-            if (tag === 0x44) { // mimeMediaType
-                const valBuf = Buffer.from(value, 'utf8');
-                const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
-                b.writeUInt8(tag, 0);
-                b.writeUInt16BE(nameBuf.length, 1);
-                nameBuf.copy(b, 3);
-                b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
-                valBuf.copy(b, 5 + nameBuf.length);
-                return b;
-            }
-            if (tag === 0x42) { // nameWithoutLanguage
-                const valBuf = Buffer.from(value, 'utf8');
-                const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
-                b.writeUInt8(tag, 0);
-                b.writeUInt16BE(nameBuf.length, 1);
-                nameBuf.copy(b, 3);
-                b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
-                valBuf.copy(b, 5 + nameBuf.length);
-                return b;
-            }
-            return Buffer.alloc(0);
+            const valBuf  = Buffer.from(value, 'utf8');
+            const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
+            b.writeUInt8(tag, 0);
+            b.writeUInt16BE(nameBuf.length, 1);
+            nameBuf.copy(b, 3);
+            b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
+            valBuf.copy(b, 5 + nameBuf.length);
+            return b;
         }
 
         const printerUri = `ipp://${imp.ip}/ipp/print`;

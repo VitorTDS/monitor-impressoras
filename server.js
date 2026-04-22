@@ -102,15 +102,27 @@ app.post('/api/impressoras', (req, res) => {
 
 app.put('/api/impressoras/:id', (req, res) => {
     const { nome, modelo, ip, localizacao, comunidade, tipo, material } = req.body;
-    db.run(
-        `UPDATE impressoras SET nome = ?, modelo = ?, ip = ?, localizacao = ?, comunidade = ?, tipo = ?, material = ? WHERE id = ?`,
-        [nome, modelo, ip, localizacao, comunidade || 'public', tipo || 'Colorido', material || 'Toner', req.params.id],
-        function (err) {
-            if (err) return res.status(500).json({ erro: err.message });
-            if (this.changes === 0) return res.status(404).json({ erro: 'Impressora não encontrada' });
-            res.json({ sucesso: true });
-        }
-    );
+    db.get("SELECT * FROM impressoras WHERE id = ?", [req.params.id], (err, existing) => {
+        if (err) return res.status(500).json({ erro: err.message });
+        if (!existing) return res.status(404).json({ erro: 'Impressora não encontrada' });
+        db.run(
+            `UPDATE impressoras SET nome = ?, modelo = ?, ip = ?, localizacao = ?, comunidade = ?, tipo = ?, material = ? WHERE id = ?`,
+            [
+                nome        ?? existing.nome,
+                modelo      ?? existing.modelo,
+                ip          ?? existing.ip,
+                localizacao ?? existing.localizacao,
+                comunidade  ?? existing.comunidade,
+                tipo        ?? existing.tipo,
+                material    ?? existing.material,
+                req.params.id
+            ],
+            function (err) {
+                if (err) return res.status(500).json({ erro: err.message });
+                res.json({ sucesso: true });
+            }
+        );
+    });
 });
 
 app.delete('/api/impressoras/:id', (req, res) => {

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>imageCLASS | Acesso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --accent: #3b82f6;
+      --tx: #f8fafc; --mt: #94a3b8; --bd: #334155;
+      --red: #ef4444; --ok: #10b981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--tx);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Grid de fundo */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* Brilho azul central */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 65%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      width: 100%; max-width: 400px;
+      z-index: 1;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Logo */
+    .logo-area {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      border-radius: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 0 32px rgba(59,130,246,0.35);
+    }
+
+    .logo-icon svg { width: 30px; height: 30px; }
+
+    .logo-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--tx);
+      letter-spacing: -0.5px;
+    }
+
+    .logo-title span { color: var(--accent); }
+
+    .logo-sub {
+      font-size: 12px;
+      color: var(--mt);
+      margin-top: 4px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    /* Card principal */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 22px;
+      gap: 4px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 9px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--mt);
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s;
+      user-select: none;
+      border: none;
+      background: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Formulário */
+    .form-group { margin-bottom: 14px; }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mt);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 14px;
+      color: var(--tx);
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .form-group input::placeholder { color: #475569; }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0 14px;
+    }
+
+    .divider::before, .divider::after {
+      content: ''; flex: 1;
+      height: 1px;
+      background: var(--bd);
+    }
+
+    .divider span {
+      font-size: 11px;
+      color: var(--mt);
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    /* Botão principal */
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: filter 0.2s, transform 0.1s;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    /* Mensagem de feedback */
+    .msg {
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-top: 2px;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .msg.error {
+      background: rgba(239,68,68,0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.2);
+      display: block;
+    }
+
+    .msg.success {
+      background: rgba(16,185,129,0.12);
+      color: #6ee7b7;
+      border: 1px solid rgba(16,185,129,0.2);
+      display: block;
+    }
+
+    /* Tela de sucesso */
+    .success-screen {
+      text-align: center;
+      padding: 12px 0 4px;
+      display: none;
+    }
+
+    .success-icon {
+      width: 64px; height: 64px;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .success-icon svg {
+      width: 30px; height: 30px;
+      stroke: #10b981;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .success-screen h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--tx);
+      margin-bottom: 8px;
+    }
+
+    .success-screen p {
+      font-size: 13px;
+      color: var(--mt);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    /* Rodapé */
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 11px;
+      color: #334155;
+      letter-spacing: 0.3px;
+    }
+
+    /* Tela de carregamento pós-login */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .loading-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--bd);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-overlay p {
+      font-size: 14px;
+      color: var(--mt);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Overlay de carregamento pós-login -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p>Entrando no sistema...</p>
+  </div>
+
+  <div class="container">
+
+    <!-- Logo -->
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 9V5a1 1 0 011-1h10a1 1 0 011 1v4"/>
+          <rect x="2" y="9" width="20" height="9" rx="2"/>
+          <path d="M6 14h.01M10 14h.01"/>
+          <path d="M8 18v2h8v-2"/>
+        </svg>
+      </div>
+      <div class="logo-title">IMPRESSORAS-SOBRAL<span></span></div>
+      <div class="logo-sub">Gestão de Impressoras · Sobral</div>
+    </div>
+
+    <!-- Card -->
+    <div class="card">
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="switchTab('login')">Entrar</button>
+        <button class="tab" id="tab-register" onclick="switchTab('register')">Criar conta</button>
+      </div>
+
+      <!-- ======== TELA LOGIN ======== -->
+      <div id="screen-login">
+        <div class="form-group">
+          <label>Usuário</label>
+          <input type="text" id="login-user" placeholder="seu.usuario" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <div class="msg" id="login-msg"></div>
+        <button class="btn-primary" onclick="doLogin()">Entrar no sistema →</button>
+      </div>
+
+      <!-- ======== TELA CADASTRO ======== -->
+      <div id="screen-register" style="display:none">
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" id="reg-name" placeholder="João Silva" />
+        </div>
+
+        <div class="divider"><span>credenciais de acesso</span></div>
+
+        <div class="form-group">
+          <label>Usuário</label>
+          <input type="text" id="reg-user" placeholder="joao.silva" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label>Confirmar senha</label>
+          <input type="password" id="reg-pass2" placeholder="Repita a senha" autocomplete="new-password" />
+        </div>
+        <div class="msg" id="reg-msg"></div>
+        <button class="btn-primary" onclick="doRegister()">Criar minha conta</button>
+      </div>
+
+      <!-- ======== TELA SUCESSO ======== -->
+      <div id="screen-success" class="success-screen">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 id="success-title">Conta criada!</h2>
+        <p id="success-desc">Seu acesso foi cadastrado.<br>Agora você já pode entrar no sistema.</p>
+        <button class="btn-primary" onclick="switchTab('login')">Ir para o login →</button>
+      </div>
+
+    </div><!-- /.card -->
+
+    <div class="footer">imageCLASS &nbsp;·&nbsp; VitinhoQuebradeira &nbsp;·&nbsp; Sobral / CE</div>
+  </div>
+
+<script>
+  /* ─── Utilitários de armazenamento ─── */
+  function getUsers() {
+    try { return JSON.parse(localStorage.getItem('ic_users') || '{}'); } catch { return {}; }
+  }
+  function saveUsers(u) { localStorage.setItem('ic_users', JSON.stringify(u)); }
+  function setSession(user) { sessionStorage.setItem('ic_session', JSON.stringify({ user, ts: Date.now() })); }
+  function getSession() {
+    try { return JSON.parse(sessionStorage.getItem('ic_session')); } catch { return null; }
+  }
+
+  /* ─── Se já está logado, redireciona imediatamente ─── */
+  (function checkSession() {
+    const s = getSession();
+    if (s && s.user) {
+      document.getElementById('loadingOverlay').classList.add('show');
+      window.location.href = 'index.html';
+    }
+  })();
+
+  /* ─── Feedback visual ─── */
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+  function clearMsg(id) {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    el.className = 'msg';
+  }
+
+  /* ─── Troca de aba ─── */
+  function switchTab(tab) {
+    document.getElementById('screen-login').style.display    = tab === 'login'    ? 'block' : 'none';
+    document.getElementById('screen-register').style.display = tab === 'register' ? 'block' : 'none';
+    document.getElementById('screen-success').style.display  = 'none';
+    document.getElementById('tab-login').className    = 'tab' + (tab === 'login'    ? ' active' : '');
+    document.getElementById('tab-register').className = 'tab' + (tab === 'register' ? ' active' : '');
+    clearMsg('login-msg');
+    clearMsg('reg-msg');
+  }
+
+  /* ─── Login ─── */
+  function doLogin() {
+    const user = document.getElementById('login-user').value.trim().toLowerCase();
+    const pass = document.getElementById('login-pass').value;
+    clearMsg('login-msg');
+
+    if (!user || !pass) {
+      showMsg('login-msg', 'Preencha usuário e senha.', 'error'); return;
+    }
+
+    const users = getUsers();
+
+    if (!users[user]) {
+      showMsg('login-msg', 'Usuário não encontrado. Crie uma conta primeiro.', 'error'); return;
+    }
+
+    if (users[user].pass !== btoa(unescape(encodeURIComponent(pass)))) {
+      showMsg('login-msg', 'Senha incorreta. Tente novamente.', 'error'); return;
+    }
+
+    showMsg('login-msg', '✓ Acesso autorizado! Redirecionando...', 'success');
+    setSession(user);
+
+    setTimeout(() => {
+      document.getElementById('loadingOverlay').classList.add('show');
+      setTimeout(() => { window.location.href = 'index.html'; }, 400);
+    }, 800);
+  }
+
+  /* ─── Cadastro ─── */
+  function doRegister() {
+    const name  = document.getElementById('reg-name').value.trim();
+    const user  = document.getElementById('reg-user').value.trim().toLowerCase();
+    const pass  = document.getElementById('reg-pass').value;
+    const pass2 = document.getElementById('reg-pass2').value;
+    clearMsg('reg-msg');
+
+    if (!name || !user || !pass || !pass2) {
+      showMsg('reg-msg', 'Preencha todos os campos.', 'error'); return;
+    }
+    if (user.length < 3) {
+      showMsg('reg-msg', 'Usuário deve ter ao menos 3 caracteres.', 'error'); return;
+    }
+    if (!/^[a-z0-9._]+$/.test(user)) {
+      showMsg('reg-msg', 'Usuário: use apenas letras, números, ponto ou underscore.', 'error'); return;
+    }
+    if (pass.length < 6) {
+      showMsg('reg-msg', 'A senha deve ter ao menos 6 caracteres.', 'error'); return;
+    }
+    if (pass !== pass2) {
+      showMsg('reg-msg', 'As senhas não coincidem.', 'error'); return;
+    }
+
+    const users = getUsers();
+    if (users[user]) {
+      showMsg('reg-msg', 'Este usuário já existe. Escolha outro nome.', 'error'); return;
+    }
+
+    users[user] = {
+      name,
+      pass: btoa(unescape(encodeURIComponent(pass))),
+      createdAt: new Date().toISOString()
+    };
+    saveUsers(users);
+
+    document.getElementById('screen-register').style.display = 'none';
+    document.getElementById('screen-success').style.display  = 'block';
+    document.getElementById('tab-register').className = 'tab';
+    document.getElementById('success-title').textContent = 'Tudo certo, ' + name.split(' ')[0] + '!';
+  }
+
+  /* ─── Enter nos campos ─── */
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    const loginVisible = document.getElementById('screen-login').style.display !== 'none';
+    const regVisible   = document.getElementById('screen-register').style.display !== 'none';
+    if (loginVisible) doLogin();
+    else if (regVisible) doRegister();
+  });
+</script>
+</body>
+</html>

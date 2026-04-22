@@ -1,0 +1,173 @@
+:root {
+  /* Paleta Tech Moderna */
+  --bg-primary: #0f172a;       /* Azul marinho profundo */
+  --bg-secondary: #1e293b;     /* Slate escuro para cards */
+  --accent-color: #3b82f6;     /* Azul neon TI */
+  --canon-red: #ef4444;        /* Vermelho vibrante */
+  --text-main: #f8fafc;        /* Branco off */
+  --text-muted: #94a3b8;       /* Cinza para legendas */
+  --border-ui: #334155;        /* Bordas sutis */
+  --success: #10b981;          /* Verde status */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+/* Scrollbar Customizada */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border-ui); border-radius: 10px; }
+
+/* Layout Estrutural */
+.admin-container {
+  display: flex;
+  height: 100vh;
+}
+
+/* Sidebar Compacta */
+.sidebar {
+  width: 280px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-ui);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-tech {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 2rem;
+  color: var(--accent-color);
+  text-transform: uppercase;
+}
+
+/* Cards de Gerenciamento */
+.glass-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-ui);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--accent-color);
+}
+
+/* Inputs Estilo Terminal/Moderno */
+label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+input, select {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-ui);
+  color: var(--text-main);
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Botões Profissionais */
+.btn-action {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 0.8rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: filter 0.2s;
+}
+
+.btn-action:hover {
+  filter: brightness(1.1);
+}
+
+/* Grid de Insumos (Onde ficam as tintas/toners) */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.toner-mini-card {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid var(--border-ui);
+}
+
+.color-indicator {
+  height: 4px;
+  width: 40px;
+  margin: 0 auto 10px;
+  border-radius: 2px;
+}
+
+/* Cores dos Insumos */
+.bg-cyan { background: #06b6d4; box-shadow: 0 0 10px rgba(6, 182, 212, 0.4); }
+.bg-magenta { background: #d40b0b; box-shadow: 0 0 10px rgba(255, 50, 50, 0.4); }
+.bg-yellow { background: #eab308; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
+.bg-black { background: #64748b; box-shadow: 0 0 10px rgba(100, 116, 139, 0.4); }
+
+/* Tabela de Dispositivos */
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.device-table th {
+  text-align: left;
+  color: var(--text-muted);
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-ui);
+}
+
+.device-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-ui);
+}
+
+.status-online {
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-online::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+}

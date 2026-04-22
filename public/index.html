@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>imageCLASS | Admin</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --accent: #3b82f6;
+      --tx: #f8fafc; --mt: #94a3b8; --bd: #334155;
+      --red: #ef4444; --ok: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--tx); display: flex; height: 100vh; }
+
+    aside { width: 300px; background: var(--card); border-right: 1px solid var(--bd); padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .logo { font-weight: 800; font-size: 1.2rem; color: var(--accent); letter-spacing: -1px; margin-bottom: 8px; }
+
+    label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; }
+    input, select { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+    .btn-add { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; font-size: 14px; transition: filter .2s; }
+    .btn-add:hover { filter: brightness(1.1); }
+    .btn-sec { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%; margin-top: 6px; transition: all .2s; }
+    .btn-sec:hover { border-color: var(--red); color: var(--red); }
+
+    main { flex: 1; padding: 24px; overflow-y: auto; }
+    h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--tx); }
+
+    .model-group { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 20px; transition: border-color .3s, background .3s; }
+    .model-group.unlocked { border-color: rgba(59,130,246,.5); background: rgba(59,130,246,.04); }
+
+    .model-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bd); font-size: 14px; }
+    .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+
+    .toner-card { background: var(--bg); border: 1px solid var(--bd); padding: 12px; border-radius: 8px; text-align: center; transition: border-color .2s, opacity .2s; }
+    .toner-card:hover { border-color: var(--accent); }
+    .toner-card.locked .controls { opacity: .3; pointer-events: none; }
+    .toner-card.locked { border-color: rgba(51,65,85,.4); }
+
+    .indicator { height: 3px; width: 30px; margin: 0 auto 8px; border-radius: 2px; }
+    .bg-cyan    { background: #06b6d4; box-shadow: 0 0 8px #06b6d4; }
+    .bg-magenta { background: #d946ef; box-shadow: 0 0 8px #d946ef; }
+    .bg-yellow  { background: #eab308; box-shadow: 0 0 8px #eab308; }
+    .bg-black   { background: #94a3b8; box-shadow: 0 0 8px #94a3b8; }
+
+    .toner-name { font-size: 10px; font-weight: 600; color: var(--mt); text-transform: uppercase; margin-bottom: 8px; }
+    .controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-q { background: var(--bd); color: var(--tx); border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 16px; transition: background .2s; }
+    .btn-q:hover { background: var(--accent); }
+    .val { font-size: 1.15rem; font-weight: 800; min-width: 22px; }
+
+    .btn-lock { display: inline-flex; align-items: center; gap: 5px; background: rgba(51,65,85,.6); border: 1px solid var(--bd); color: var(--mt); padding: 5px 11px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; white-space: nowrap; }
+    .btn-lock:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-lock.unlocked { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.4); color: var(--accent); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+    th { text-align: left; color: var(--mt); padding: 10px 12px; border-bottom: 1px solid var(--bd); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--bd); vertical-align: middle; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status-dot.on  { background: var(--ok); }
+    .status-dot.off { background: var(--red); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .btn-tinta { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
+    .btn-tinta:hover { background: var(--accent); color: #fff; }
+    .btn-del { background: none; border: none; color: #475569; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; }
+    .btn-del:hover { color: var(--red); }
+    .btn-edit { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.2); color: var(--mt); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
+    .btn-edit:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,.08); }
+    .btn-print { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); color: var(--ok); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
+    .btn-print:hover { background: var(--ok); color: #fff; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 24px; width: 100%; max-width: 380px; transform: translateY(12px); transition: transform .2s; }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal h4 { font-size: 15px; font-weight: 700; margin-bottom: 18px; color: var(--tx); }
+    .modal-label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .modal-input { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 12px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
+    .modal-input:focus { outline: none; border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .btn-save { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; flex: 1; transition: filter .2s; font-family: inherit; }
+    .btn-save:hover { filter: brightness(1.1); }
+    .btn-cancel { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; font-family: inherit; }
+    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+    .senha-erro { font-size: 12px; color: var(--red); display: none; margin: -6px 0 10px; }
+    .senha-erro.show { display: block; }
+
+    code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+    .secao-titulo { display: flex; align-items: center; gap: 10px; margin: 28px 0 14px; }
+    .secao-titulo h3 { margin: 0; }
+    .badge-material { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .4px; }
+    .badge-tinta  { background: rgba(6,182,212,.15);  color: #06b6d4; border: 1px solid rgba(6,182,212,.3); }
+    .badge-toner  { background: rgba(148,163,184,.12); color: #94a3b8; border: 1px solid rgba(148,163,184,.25); }
+    .secao-empty  { color: var(--mt); font-size: 13px; padding: 16px 0; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--ok); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; transform: translateY(60px); opacity: 0; transition: all .3s; z-index: 999; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .user-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg); border: 1px solid var(--bd); border-radius: 8px; margin-bottom: 4px; }
+    .user-bar span { font-size: 12px; color: var(--mt); }
+    .user-bar strong { color: var(--tx); font-size: 12px; }
+    .btn-logout { background: none; border: none; color: var(--mt); font-size: 11px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; font-family: inherit; }
+    .btn-logout:hover { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<script>
+  (function() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem('ic_session') || 'null');
+      if (!s || !s.user) window.location.replace('login.html');
+    } catch(e) { window.location.replace('login.html'); }
+  })();
+</script>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modal editar impressora -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h4>✏️ Editar Impressora</h4>
+    <input type="hidden" id="editId">
+    <span class="modal-label">Fabricante</span>
+    <select id="editFabricante" class="modal-input"><option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option></select>
+    <span class="modal-label">Modelo / Setor</span>
+    <input type="text" id="editModelo" class="modal-input" placeholder="Ex: GX7010 - Financeiro">
+    <span class="modal-label">IP / Endereço</span>
+    <input type="text" id="editIp" class="modal-input" placeholder="192.168.1.50">
+    <span class="modal-label">Localização</span>
+    <input type="text" id="editLocalizacao" class="modal-input" placeholder="Ex: 2º Andar - Sala 201">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save" onclick="salvarEdicao()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal imprimir -->
+<div class="modal-overlay" id="modalPrint">
+  <div class="modal">
+    <h4>🖨️ Enviar Impressão</h4>
+    <input type="hidden" id="printId">
+    <span class="modal-label">Impressora</span>
+    <input type="text" id="printNome" class="modal-input" disabled style="opacity:.5">
+    <span class="modal-label">Conteúdo</span>
+    <textarea id="printConteudo" class="modal-input" rows="6" placeholder="Digite o texto que deseja imprimir..." style="resize:vertical;font-family:monospace"></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modalPrint').classList.remove('open')">Cancelar</button>
+      <button class="btn-save" onclick="enviarImpressao()">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal senha de desbloqueio -->
+<div class="modal-overlay" id="modalSenha">
+  <div class="modal" style="max-width:320px">
+    <h4>🔒 Desbloquear Edição</h4>
+    <p style="font-size:12px;color:var(--mt);margin-bottom:16px;line-height:1.6">
+      Digite a senha mestre para liberar os botões de ajuste por <strong style="color:var(--tx)">5 minutos</strong>.
+    </p>
+    <span class="modal-label">Senha</span>
+    <input type="password" id="senhaInput" class="modal-input" placeholder="••••••••" autocomplete="off">
+    <p class="senha-erro" id="senhaErro">❌ Senha incorreta. Tente novamente.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalSenha()">Cancelar</button>
+      <button class="btn-save" id="btnDesbloquear" onclick="validarSenha()">Desbloquear</button>
+    </div>
+  </div>
+</div>
+
+<aside>
+  <div class="logo">Vitinho<span style="color:var(--tx)">Quebradeira</span></div>
+  <div class="user-bar">
+    <div><span>Logado como </span><strong id="userLabel">—</strong></div>
+    <button class="btn-logout" onclick="doLogout()">Sair</button>
+  </div>
+
+  <form id="formAdd">
+    <label>Fabricante</label>
+    <select name="fabricante">
+      <option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option>
+    </select>
+    <label>Modelo / Setor</label>
+    <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
+    <label>IP / Endereço</label>
+    <input type="text" name="ip" placeholder="192.168.1.50">
+    <label>Localização</label>
+    <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
+    <label>Comunidade SNMP</label>
+    <input type="text" name="comunidade" placeholder="public" value="public">
+    <label>Tipo de Suprimento</label>
+    <select name="tipo">
+      <option value="Colorido">Colorido (CMYK)</option>
+      <option value="Mono">Apenas Preto</option>
+      <option value="Manutencao">Caixa Manutenção</option>
+    </select>
+    <label>Material do Suprimento</label>
+    <select name="material">
+      <option value="Tinta">🖋️ Tinta</option>
+      <option value="Toner">⬛ Toner</option>
+    </select>
+    <button type="submit" class="btn-add">+ Registrar Equipamento</button>
+  </form>
+
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--bd)">
+    <button onclick="zerarTudo()" class="btn-sec">🗑️ Zerar Estoque</button>
+  </div>
+</aside>
+
+<main>
+  <div class="secao-titulo"><h3>📦 Estoque de Suprimentos</h3></div>
+  <div class="secao-titulo" style="margin-top:0">
+    <h3 style="font-size:13px">🖋️ Impressoras de Tinta</h3>
+    <span class="badge-material badge-tinta">TINTA</span>
+  </div>
+  <div id="estoqueContainerTinta"></div>
+  <div class="secao-titulo">
+    <h3 style="font-size:13px">⬛ Impressoras de Toner</h3>
+    <span class="badge-material badge-toner">TONER</span>
+  </div>
+  <div id="estoqueContainerToner"></div>
+
+  <h3 style="margin-top:32px">🖨️ Dispositivos Cadastrados</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Fabricante</th><th>Modelo / Setor</th><th>IP</th>
+        <th>Localização</th><th>Status</th><th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="deviceBody"></tbody>
+  </table>
+</main>
+
+<script>
+  const CORES_MAP       = { Colorido: ['Preto','Ciano','Magenta','Amarelo'], Mono: ['Preto'], Manutencao: ['Manutenção'] };
+  const UNLOCK_DURATION = 5 * 60;
+  const unlockedGroups  = {};
+  let   modeloPendente  = null;
+
+  (function() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem('ic_session') || 'null');
+      if (s && s.user) {
+        const users = JSON.parse(localStorage.getItem('ic_users') || '{}');
+        const info  = users[s.user];
+        document.getElementById('userLabel').textContent = info ? info.name.split(' ')[0] : s.user;
+      }
+    } catch(e) {}
+  })();
+
+  function doLogout() { sessionStorage.removeItem('ic_session'); window.location.replace('login.html'); }
+  function corClasse(c) {
+    const v = c.toLowerCase();
+    if (v.includes('ciano'))   return 'bg-cyan';
+    if (v.includes('magenta')) return 'bg-magenta';
+    if (v.includes('amarelo')) return 'bg-yellow';
+    return 'bg-black';
+  }
+  function limparID(t) { return t.replace(/[^a-zA-Z0-9]/g, ''); }
+  function showToast(msg, erro = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = erro ? '#ef4444' : '#10b981';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── CADEADO ──────────────────────────────────────────────────────────────────
+  function toggleLock(modelo) {
+    if (unlockedGroups[modelo]) {
+      lockGroup(modelo);
+    } else {
+      modeloPendente = modelo;
+      document.getElementById('senhaInput').value = '';
+      document.getElementById('senhaErro').classList.remove('show');
+      document.getElementById('modalSenha').classList.add('open');
+      setTimeout(() => document.getElementById('senhaInput').focus(), 150);
+    }
+  }
+
+  function fecharModalSenha() {
+    document.getElementById('modalSenha').classList.remove('open');
+    modeloPendente = null;
+  }
+
+  document.getElementById('senhaInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') validarSenha();
+  });
+
+  async function validarSenha() {
+    const senha = document.getElementById('senhaInput').value;
+    if (!senha) return;
+    const btn = document.getElementById('btnDesbloquear');
+    btn.textContent = 'Verificando...'; btn.disabled = true;
+    try {
+      const res  = await fetch('/api/auth/estoque', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senha })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        document.getElementById('senhaErro').classList.add('show');
+        document.getElementById('senhaInput').value = '';
+        document.getElementById('senhaInput').focus();
+      } else {
+        document.getElementById('modalSenha').classList.remove('open');
+        if (modeloPendente) { unlockGroup(modeloPendente); modeloPendente = null; }
+      }
+    } catch { document.getElementById('senhaErro').classList.add('show'); }
+    finally  { btn.textContent = 'Desbloquear'; btn.disabled = false; }
+  }
+
+  function unlockGroup(modelo) {
+    const key   = limparID(modelo);
+    const group = document.querySelector(`.model-group[data-modelo="${modelo}"]`);
+    const btn   = document.getElementById(`lock-${key}`);
+    if (!group) return;
+
+    group.classList.add('unlocked');
+    group.querySelectorAll('.toner-card').forEach(c => c.classList.remove('locked'));
+
+    if (btn) {
+      btn.classList.add('unlocked');
+      btn.innerHTML = `🔓 <span id="timer-${key}">5:00</span>`;
+    }
+
+    if (unlockedGroups[modelo]) clearInterval(unlockedGroups[modelo].interval);
+
+    let remaining = UNLOCK_DURATION;
+    const interval = setInterval(() => {
+      remaining--;
+      const el = document.getElementById(`timer-${key}`);
+      if (el) el.textContent = `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;
+      if (remaining <= 0) lockGroup(modelo);
+    }, 1000);
+
+    unlockedGroups[modelo] = { interval };
+    showToast('Desbloqueado por 5 minutos ✓');
+  }
+
+  function lockGroup(modelo) {
+    const key   = limparID(modelo);
+    const group = document.querySelector(`.model-group[data-modelo="${modelo}"]`);
+    const btn   = document.getElementById(`lock-${key}`);
+    if (!group) return;
+    group.classList.remove('unlocked');
+    group.querySelectorAll('.toner-card').forEach(c => c.classList.add('locked'));
+    if (btn) { btn.classList.remove('unlocked'); btn.innerHTML = '🔒 Bloqueado'; }
+    if (unlockedGroups[modelo]) { clearInterval(unlockedGroups[modelo].interval); delete unlockedGroups[modelo]; }
+    showToast('Estoque bloqueado');
+  }
+
+  // ── CARREGAR DADOS ────────────────────────────────────────────────────────────
+  async function carregarDados() {
+    try {
+      const [resImps, resEst] = await Promise.all([fetch('/api/dashboard'), fetch('/api/estoque')]);
+      const imps    = await resImps.json();
+      const estoque = await resEst.json();
+
+      document.getElementById('deviceBody').innerHTML = imps.map(p => `
+        <tr>
+          <td><strong>${p.fabricante || '---'}</strong></td>
+          <td>${p.modelo || '---'}</td>
+          <td><code>${p.ip || '---'}</code></td>
+          <td>${p.localizacao || '---'}</td>
+          <td>
+            <span class="status-dot ${p.online ? 'on' : 'off'}"></span>
+            ${p.online ? 'Online' : 'Offline'}
+          </td>
+          <td style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <a class="btn-tinta" href="http://${p.ip}" target="_blank">🖨️ Tinta</a>
+            <button class="btn-print"
+              data-id="${p.id}"
+              data-nome="${(p.modelo||'Impressora').replace(/"/g,'&quot;')}"
+              onclick="abrirImpressao(this)">▶ Imprimir</button>
+            <button class="btn-edit"
+              data-id="${p.id}"
+              data-fab="${(p.fabricante||'').replace(/"/g,'&quot;')}"
+              data-mod="${(p.modelo||'').replace(/"/g,'&quot;')}"
+              data-ip="${(p.ip||'').replace(/"/g,'&quot;')}"
+              data-loc="${(p.localizacao||'').replace(/"/g,'&quot;')}"
+              onclick="abrirEdicaoBtn(this)">✏️ Editar</button>
+            <button class="btn-del" onclick="del(${p.id})">✕</button>
+          </td>
+        </tr>`).join('');
+
+      const containerTinta = document.getElementById('estoqueContainerTinta');
+      const containerToner = document.getElementById('estoqueContainerToner');
+      containerTinta.innerHTML = '';
+      containerToner.innerHTML = '';
+      let temTinta = false, temToner = false;
+
+      const agrupados = {};
+      imps.forEach(p => {
+        const m = (p.modelo || '').trim().toUpperCase();
+        let chave = (m.includes('GX7010') || m.includes('GX6010') || m.includes('7010') || m.includes('6010'))
+          ? 'Canon GX6010 / GX7010'
+          : (p.modelo || 'Geral').trim().replace(/\s+/g, ' ');
+        if (!agrupados[chave]) agrupados[chave] = { ...p, modelo: chave, localizacoes: [], modelosOriginais: new Set() };
+        if (p.localizacao) agrupados[chave].localizacoes.push(p.localizacao);
+        agrupados[chave].modelosOriginais.add((p.modelo || '').trim());
+      });
+
+      Object.entries(agrupados).forEach(([modelo, info]) => {
+        const cores      = CORES_MAP[info.tipo] || CORES_MAP['Colorido'];
+        const gridID     = `grid-${limparID(modelo)}`;
+        const lockID     = `lock-${limparID(modelo)}`;
+        const mat        = info.material || 'Toner';
+        const isTinta    = mat === 'Tinta';
+        const desbloq    = !!unlockedGroups[modelo];
+        temTinta = temTinta || isTinta;
+        temToner = temToner || !isTinta;
+
+        const locs     = [...new Set(info.localizacoes)];
+        const locsHtml = locs.length ? `<span style="font-size:11px;color:var(--mt);font-weight:400"> · ${locs.join(' / ')}</span>` : '';
+
+        const group = document.createElement('div');
+        group.className = `model-group${desbloq ? ' unlocked' : ''}`;
+        group.setAttribute('data-modelo', modelo);
+        group.innerHTML = `
+          <div class="model-header">
+            <span><strong>${info.fabricante || 'Geral'} — ${modelo}</strong>${locsHtml}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge-material ${isTinta ? 'badge-tinta' : 'badge-toner'}">${mat.toUpperCase()}</span>
+              <button class="btn-lock${desbloq ? ' unlocked' : ''}" id="${lockID}" onclick="toggleLock('${modelo}')">
+                ${desbloq ? `🔓 <span id="timer-${limparID(modelo)}">--:--</span>` : '🔒 Bloqueado'}
+              </button>
+            </div>
+          </div>
+          <div class="stock-grid" id="${gridID}"></div>`;
+
+        (isTinta ? containerTinta : containerToner).appendChild(group);
+
+        cores.forEach(cor => {
+          const modelos    = [...info.modelosOriginais];
+          const registros  = estoque.filter(e => modelos.some(m => e.modelo === m) && e.insumo === cor);
+          const quantidade = registros.reduce((acc, e) => acc + (e.quantidade || 0), 0);
+          document.getElementById(gridID).innerHTML += `
+            <div class="toner-card${desbloq ? '' : ' locked'}" data-insumo="${cor}">
+              <div class="indicator ${corClasse(cor)}"></div>
+              <div class="toner-name">${cor}</div>
+              <div class="controls">
+                <button class="btn-q" onclick="mudarQtd('${modelo}','${cor}',-1)">−</button>
+                <span class="val">${quantidade}</span>
+                <button class="btn-q" onclick="mudarQtd('${modelo}','${cor}',1)">+</button>
+              </div>
+            </div>`;
+        });
+      });
+
+      if (!temTinta) containerTinta.innerHTML = '<p class="secao-empty">Nenhuma impressora de tinta cadastrada.</p>';
+      if (!temToner) containerToner.innerHTML = '<p class="secao-empty">Nenhuma impressora de toner cadastrada.</p>';
+
+    } catch(e) { console.error('Erro:', e); showToast('Erro ao carregar dados', true); }
+  }
+
+  async function mudarQtd(mod, insumo, delta) {
+    if (!unlockedGroups[mod]) { showToast('Desbloqueie o estoque primeiro 🔒', true); return; }
+    const grupo = [...document.querySelectorAll('.model-group')].find(g => g.getAttribute('data-modelo') === mod);
+    if (!grupo) return;
+    const card  = grupo.querySelector(`[data-insumo="${insumo}"]`);
+    const span  = card.querySelector('.val');
+    const novo  = Math.max(0, parseInt(span.textContent) + delta);
+    span.textContent = novo;
+    span.style.color = 'var(--accent)';
+    try {
+      const res = await fetch('/api/estoque', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelo: mod, insumo, quantidade: novo, estado: 'Novo' })
+      });
+      if (!res.ok) throw new Error();
+      setTimeout(() => { span.style.color = 'var(--tx)'; }, 400);
+    } catch { showToast('Erro ao salvar!', true); carregarDados(); }
+  }
+
+  async function zerarTudo() {
+    if (!confirm('Zerar TODO o estoque?')) return;
+    const res = await fetch('/api/estoque');
+    const est = await res.json();
+    for (const item of est) {
+      await fetch('/api/estoque', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelo: item.modelo, insumo: item.insumo, quantidade: 0, estado: 'Novo' })
+      });
+    }
+    showToast('Estoque zerado!'); carregarDados();
+  }
+
+  async function del(id) {
+    if (!confirm('Remover esta impressora?')) return;
+    await fetch(`/api/impressoras/${id}`, { method: 'DELETE' });
+    showToast('Impressora removida'); carregarDados();
+  }
+
+  document.getElementById('formAdd').onsubmit = async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    await fetch('/api/impressoras', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    e.target.reset(); showToast('Impressora cadastrada!'); carregarDados();
+  };
+
+  function abrirEdicaoBtn(btn) {
+    document.getElementById('editId').value          = btn.dataset.id;
+    document.getElementById('editFabricante').value  = btn.dataset.fab;
+    document.getElementById('editModelo').value      = btn.dataset.mod;
+    document.getElementById('editIp').value          = btn.dataset.ip;
+    document.getElementById('editLocalizacao').value = btn.dataset.loc;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function fecharModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+  async function salvarEdicao() {
+    const id          = document.getElementById('editId').value;
+    const fabricante  = document.getElementById('editFabricante').value;
+    const modelo      = document.getElementById('editModelo').value.trim();
+    const ip          = document.getElementById('editIp').value.trim();
+    const localizacao = document.getElementById('editLocalizacao').value.trim();
+    if (!modelo) { showToast('Preencha o Modelo/Setor', true); return; }
+    try {
+      const res = await fetch(`/api/impressoras/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fabricante, modelo, ip, localizacao })
+      });
+      if (!res.ok) throw new Error();
+      document.getElementById('modalOverlay').classList.remove('open');
+      showToast('Impressora atualizada!'); carregarDados();
+    } catch { showToast('Erro ao salvar edição!', true); }
+  }
+
+  function abrirImpressao(btn) {
+    document.getElementById('printId').value   = btn.dataset.id;
+    document.getElementById('printNome').value = btn.dataset.nome;
+    document.getElementById('printConteudo').value = '';
+    document.getElementById('modalPrint').classList.add('open');
+    setTimeout(() => document.getElementById('printConteudo').focus(), 200);
+  }
+
+  async function enviarImpressao() {
+    const id       = document.getElementById('printId').value;
+    const conteudo = document.getElementById('printConteudo').value.trim();
+    if (!conteudo) { showToast('Digite algo para imprimir!', true); return; }
+    try {
+      const res  = await fetch(`/api/impressoras/${id}/imprimir`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conteudo })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.erro);
+      document.getElementById('modalPrint').classList.remove('open');
+      showToast('Impressão enviada!');
+    } catch(e) { showToast('Erro: ' + e.message, true); }
+  }
+
+  ['modalOverlay','modalPrint','modalSenha'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('open');
+        if (id === 'modalSenha') modeloPendente = null;
+      }
+    });
+  });
+
+  carregarDados();
+</script>
+</body>
+</html>

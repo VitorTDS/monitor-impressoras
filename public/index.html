@@ -527,7 +527,7 @@
     try {
       const res = await fetch(`/api/impressoras/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fabricante, modelo, ip, localizacao })
+        body: JSON.stringify({ nome: fabricante, modelo, ip, localizacao })
       });
       if (!res.ok) throw new Error();
       document.getElementById('modalOverlay').classList.remove('open');

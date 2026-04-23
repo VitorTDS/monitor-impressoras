@@ -113,7 +113,14 @@ const dbReady = new Promise(resolve => {
 });
 
 // ── Middleware stack (ordem: helmet → cors → rate limit → body → static) ─────
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            'script-src': ["'self'", "'unsafe-inline'"],
+        }
+    }
+}));
 
 app.use(cors({
     origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',

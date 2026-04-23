@@ -2,7 +2,7 @@ const express      = require('express');
 const sqlite3      = require('sqlite3').verbose();
 const snmp         = require('net-snmp');
 const net          = require('net');
-const path         = require('path');
+const http         = require('http');
 const helmet       = require('helmet');
 const cors         = require('cors');
 const rateLimit    = require('express-rate-limit');
@@ -28,6 +28,16 @@ function validarImpressora(body, obrigatorio = true) {
     return erros;
 }
 
+function validarEstoque(body) {
+    const erros = [];
+    const { modelo, insumo, quantidade } = body;
+    if (!modelo || typeof modelo !== 'string' || !modelo.trim()) erros.push('modelo é obrigatório');
+    if (!insumo  || typeof insumo  !== 'string' || !insumo.trim())  erros.push('insumo é obrigatório');
+    if (quantidade === undefined || quantidade === null) erros.push('quantidade é obrigatória');
+    else if (!Number.isInteger(Number(quantidade)) || Number(quantidade) < 0) erros.push('quantidade deve ser inteiro >= 0');
+    return erros;
+}
+
 // ── Tokens de estoque (memória, TTL 5 min) ────────────────────────────────────
 const estoqueTokens = new Map();
 
@@ -45,6 +55,14 @@ function verificarTokenEstoque(req, res, next) {
     next();
 }
 
+// Remove tokens expirados da memória a cada minuto
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, exp] of estoqueTokens) {
+        if (now > exp) estoqueTokens.delete(token);
+    }
+}, 60_000).unref();
+
 // ── Cache do dashboard (30 s) ─────────────────────────────────────────────────
 let dashCache   = null;
 let dashCacheAt = 0;
@@ -53,8 +71,6 @@ const DASH_TTL  = 30_000;
 function invalidarCacheDash() { dashCacheAt = 0; }
 
 // ── Credencial de estoque ─────────────────────────────────────────────────────
-// Defina ESTOQUE_SENHA no ambiente antes de iniciar. Sem a variável o servidor
-// gera um token aleatório por boot — impossibilitando login não intencional.
 let ESTOQUE_SENHA = process.env.ESTOQUE_SENHA;
 if (!ESTOQUE_SENHA) {
     ESTOQUE_SENHA = crypto.randomBytes(16).toString('hex');
@@ -63,32 +79,36 @@ if (!ESTOQUE_SENHA) {
 }
 
 // ── Banco de dados ────────────────────────────────────────────────────────────
-const db = new sqlite3.Database('./banco.db');
+const DB_PATH = process.env.DATABASE_PATH || './banco.db';
+const db = new sqlite3.Database(DB_PATH);
 
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS impressoras (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT, ip TEXT, modelo TEXT, localizacao TEXT, comunidade TEXT, tipo TEXT, material TEXT
-    )`);
-    db.run(`ALTER TABLE impressoras ADD COLUMN material TEXT`, () => {});
-    db.run(`ALTER TABLE impressoras ADD COLUMN tipo TEXT`, () => {});
-    db.run(`UPDATE impressoras SET material = 'Toner' WHERE material IS NULL`);
-    db.run(`UPDATE impressoras SET tipo = 'Colorido' WHERE tipo IS NULL`);
-    db.run(`CREATE TABLE IF NOT EXISTS estoque (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        modelo TEXT, insumo TEXT, quantidade INTEGER, estado TEXT,
-        UNIQUE(modelo, insumo, estado)
-    )`);
-    db.run(`
-        INSERT OR REPLACE INTO estoque (modelo, insumo, quantidade, estado)
-        SELECT modelo, insumo, SUM(quantidade), 'Novo'
-        FROM estoque
-        GROUP BY modelo, insumo
-        HAVING COUNT(*) > 1
-    `, () => {
-        db.run(`DELETE FROM estoque WHERE estado != 'Novo' AND rowid NOT IN (
-            SELECT MIN(rowid) FROM estoque GROUP BY modelo, insumo
+const dbReady = new Promise(resolve => {
+    db.serialize(() => {
+        db.run(`CREATE TABLE IF NOT EXISTS impressoras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT, ip TEXT, modelo TEXT, localizacao TEXT, comunidade TEXT, tipo TEXT, material TEXT
         )`);
+        db.run(`ALTER TABLE impressoras ADD COLUMN material TEXT`, () => {});
+        db.run(`ALTER TABLE impressoras ADD COLUMN tipo TEXT`, () => {});
+        db.run(`UPDATE impressoras SET material = 'Toner' WHERE material IS NULL`);
+        db.run(`UPDATE impressoras SET tipo = 'Colorido' WHERE tipo IS NULL`);
+        db.run(`CREATE TABLE IF NOT EXISTS estoque (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            modelo TEXT, insumo TEXT, quantidade INTEGER, estado TEXT,
+            UNIQUE(modelo, insumo, estado)
+        )`);
+        db.run(`
+            INSERT OR REPLACE INTO estoque (modelo, insumo, quantidade, estado)
+            SELECT modelo, insumo, SUM(quantidade), 'Novo'
+            FROM estoque
+            GROUP BY modelo, insumo
+            HAVING COUNT(*) > 1
+        `, () => {
+            db.run(`DELETE FROM estoque WHERE estado != 'Novo' AND rowid NOT IN (
+                SELECT MIN(rowid) FROM estoque GROUP BY modelo, insumo
+            )`);
+        });
+        db.run('SELECT 1', resolve);
     });
 });
 
@@ -206,9 +226,9 @@ app.put('/api/impressoras/:id', (req, res, next) => {
         db.run(
             `UPDATE impressoras SET nome = ?, modelo = ?, ip = ?, localizacao = ?, comunidade = ?, tipo = ?, material = ? WHERE id = ?`,
             [
-                (nome        ?? existing.nome)?.trim?.()        ?? existing.nome,
-                (modelo      ?? existing.modelo)?.trim?.()      ?? existing.modelo,
-                (ip          ?? existing.ip)?.trim?.()          ?? existing.ip,
+                (nome        ?? existing.nome)?.trim?.()    ?? existing.nome,
+                (modelo      ?? existing.modelo)?.trim?.()  ?? existing.modelo,
+                (ip          ?? existing.ip)?.trim?.()      ?? existing.ip,
                 localizacao  ?? existing.localizacao,
                 comunidade   ?? existing.comunidade,
                 tipo         ?? existing.tipo,
@@ -240,11 +260,14 @@ app.get('/api/estoque', (req, res) => {
 });
 
 app.post('/api/estoque', verificarTokenEstoque, (req, res, next) => {
+    const erros = validarEstoque(req.body);
+    if (erros.length) return res.status(400).json({ erro: erros.join('; ') });
+
     const { modelo, insumo, quantidade, estado } = req.body;
     db.run(
         `INSERT INTO estoque (modelo, insumo, quantidade, estado) VALUES (?,?,?,?)
          ON CONFLICT(modelo, insumo, estado) DO UPDATE SET quantidade = excluded.quantidade`,
-        [modelo, insumo, quantidade, estado],
+        [modelo, insumo, quantidade, estado || 'Novo'],
         (err) => {
             if (err) { console.error(err); return next(err); }
             res.status(201).json({ sucesso: true });
@@ -276,7 +299,6 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
     db.get('SELECT * FROM impressoras WHERE id = ?', [req.params.id], (err, imp) => {
         if (err || !imp) return res.status(404).json({ erro: 'Impressora não encontrada' });
 
-        // Documento PostScript para envio via IPP (Canon MF654Cdw aceita PS via IPP)
         const ps =
             '%!PS-Adobe-3.0\n%%Pages: 1\n%%EndComments\n%%Page: 1 1\n' +
             '/Courier findfont 12 scalefont setfont\n72 750 moveto\n' +
@@ -288,7 +310,6 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
 
         const psBuffer = Buffer.from(ps, 'utf8');
 
-        // Monta requisição IPP Print-Job
         function ippAttr(tag, name, value) {
             const nameBuf = Buffer.from(name, 'utf8');
             const valBuf  = Buffer.from(value, 'utf8');
@@ -313,7 +334,6 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
             Buffer.from([0x03])
         ]);
 
-        // Header IPP: version=1.1, operation=Print-Job(0x0002), request-id=1
         const header = Buffer.alloc(8);
         header.writeUInt8(0x01, 0);
         header.writeUInt8(0x01, 1);
@@ -321,7 +341,6 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
         header.writeInt32BE(1, 4);
 
         const ippBody = Buffer.concat([header, attrs, psBuffer]);
-        const http    = require('http');
 
         const reqHttp = http.request({
             hostname: imp.ip, port: 631, path: '/ipp/print', method: 'POST',
@@ -342,7 +361,6 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
         });
 
         reqHttp.on('error', () => {
-            // Fallback RAW porta 9100
             const socket = new net.Socket();
             let respondeu = false;
             socket.setTimeout(5000);
@@ -374,27 +392,31 @@ app.use((err, req, res, next) => {
     res.status(500).json({ erro: 'Erro interno do servidor' });
 });
 
-// ── Inicialização e graceful shutdown ─────────────────────────────────────────
-const PORT   = process.env.PORT || 3000;
-const server = app.listen(PORT, () => console.log(`Servidor em http://localhost:${PORT}`));
+module.exports = { app, db, dbReady, estoqueTokens };
 
-function encerrar(sinal) {
-    console.log(`\n${sinal} recebido. Encerrando servidor...`);
-    server.close(() => {
-        db.close(() => process.exit(0));
+// ── Inicialização e graceful shutdown (apenas quando executado diretamente) ────
+if (require.main === module) {
+    const PORT   = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => console.log(`Servidor em http://localhost:${PORT}`));
+
+    function encerrar(sinal) {
+        console.log(`\n${sinal} recebido. Encerrando servidor...`);
+        server.close(() => {
+            db.close(() => process.exit(0));
+        });
+        setTimeout(() => process.exit(1), 10000).unref();
+    }
+
+    process.on('SIGTERM', () => encerrar('SIGTERM'));
+    process.on('SIGINT',  () => encerrar('SIGINT'));
+
+    process.on('unhandledRejection', (reason) => {
+        console.error('unhandledRejection:', reason);
+        process.exit(1);
     });
-    setTimeout(() => process.exit(1), 10000).unref();
+
+    process.on('uncaughtException', (err) => {
+        console.error('uncaughtException:', err);
+        process.exit(1);
+    });
 }
-
-process.on('SIGTERM', () => encerrar('SIGTERM'));
-process.on('SIGINT',  () => encerrar('SIGINT'));
-
-process.on('unhandledRejection', (reason) => {
-    console.error('unhandledRejection:', reason);
-    process.exit(1);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('uncaughtException:', err);
-    process.exit(1);
-});

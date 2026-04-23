@@ -8,18 +8,18 @@
   <style>
     body { overflow-x: hidden; }
 
-    .statsbar { display: flex; gap: 14px; padding: 14px 28px; background: #0d0d0d; border-bottom: 1px solid var(--bd); }
+    .statsbar { display: flex; gap: 14px; padding: 14px 28px; background: var(--card); border-bottom: 1px solid var(--bd); }
     .pill { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 18px; flex: 1; }
     .pico { font-size: 20px; }
     .plbl { font-size: 10px; color: var(--mt); text-transform: uppercase; letter-spacing: 1px; }
     .pval { font-size: 26px; font-weight: 800; line-height: 1; }
     .pval.bl { color: var(--blue); } .pval.gn { color: var(--ok); } .pval.rd { color: var(--no); } .pval.wn { color: #f59e0b; }
 
-    .sbar { padding: 12px 28px; display: flex; gap: 10px; align-items: center; background: #0d0d0d; flex-wrap: wrap; }
+    .sbar { padding: 12px 28px; display: flex; gap: 10px; align-items: center; background: var(--card); flex-wrap: wrap; }
     .si { background: var(--card); border: 1px solid var(--bd); color: var(--tx); padding: 9px 14px; border-radius: 8px; font-size: 13px; width: 260px; transition: border-color 0.2s; }
     .si:focus { outline: none; border-color: var(--blue); }
     .fb { background: var(--card); border: 1px solid var(--bd); color: var(--mt); padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
-    .fb.act { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,.08); }
+    .fb.act { border-color: var(--blue); color: var(--blue); background: rgba(251,102,2,.08); }
     .fb:hover { border-color: #555; color: var(--tx); }
     .fb:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -48,7 +48,7 @@
 
     .cf  { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bd); }
     .lck { font-size: 11px; color: #444; }
-    .btr { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.25); color: var(--blue); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btr { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.25); color: var(--blue); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
     .btr:hover { background: var(--blue); color: #fff; }
   </style>
 </head>
@@ -155,7 +155,14 @@
     document.getElementById('low').textContent = dadosCache.filter(p => tBaixa(p.suprimentos)).length;
 
     if (!lista.length) {
-      grid.innerHTML = '<div class="empty">Nenhuma impressora encontrada</div>';
+      const q = (document.getElementById('si').value || '').trim();
+      const msgs = {
+        all:  q ? `Nenhuma impressora encontrada para "<strong>${esc(q)}</strong>"` : 'Nenhuma impressora cadastrada',
+        on:   q ? `Nenhuma impressora online encontrada para "<strong>${esc(q)}</strong>"` : 'Nenhuma impressora online no momento',
+        off:  q ? `Nenhuma impressora offline encontrada para "<strong>${esc(q)}</strong>"` : 'Todas as impressoras estão online ✓',
+        low:  q ? `Nenhuma impressora com tinta baixa encontrada para "<strong>${esc(q)}</strong>"` : 'Nenhuma impressora com tinta baixa ✓',
+      };
+      grid.innerHTML = `<div class="empty">${msgs[filtroAtivo] ?? msgs.all}</div>`;
       return;
     }
 

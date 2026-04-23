@@ -4,19 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>imageCLASS | Acesso</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
   <style>
     :root {
-      --bg: #0f172a; --card: #1e293b; --accent: #3b82f6;
-      --tx: #f8fafc; --mt: #94a3b8; --bd: #334155;
+      --bg: #0a0a0a; --card: #161616; --accent: #FB6602;
+      --tx: #F4F4F4; --mt: #6E6E6E; --bd: #2a2a2a;
       --red: #ef4444; --ok: #10b981;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'DM Sans', system-ui, sans-serif;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
       color: var(--tx);
       min-height: 100vh;
@@ -33,8 +32,8 @@
       content: '';
       position: fixed; inset: 0;
       background-image:
-        linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px);
+        linear-gradient(rgba(251,102,2,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(251,102,2,0.05) 1px, transparent 1px);
       background-size: 48px 48px;
       pointer-events: none;
     }
@@ -44,7 +43,7 @@
       content: '';
       position: fixed;
       width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(59,130,246,0.10) 0%, transparent 65%);
+      background: radial-gradient(circle, rgba(251,102,2,0.10) 0%, transparent 65%);
       top: 50%; left: 50%;
       transform: translate(-50%, -60%);
       pointer-events: none;
@@ -72,16 +71,16 @@
       display: inline-flex;
       align-items: center; justify-content: center;
       width: 56px; height: 56px;
-      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      background: linear-gradient(135deg, #FB6602 0%, #d45600 100%);
       border-radius: 16px;
       margin-bottom: 14px;
-      box-shadow: 0 0 32px rgba(59,130,246,0.35);
+      box-shadow: 0 0 32px rgba(251,102,2,0.35);
     }
 
     .logo-icon svg { width: 30px; height: 30px; }
 
     .logo-title {
-      font-family: 'Space Mono', monospace;
+      font-family: 'Courier New', monospace;
       font-size: 20px;
       font-weight: 700;
       color: var(--tx);
@@ -130,7 +129,7 @@
       user-select: none;
       border: none;
       background: none;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     }
 
     .tab.active {
@@ -160,7 +159,7 @@
       padding: 11px 14px;
       font-size: 14px;
       color: var(--tx);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
       outline: none;
     }
@@ -169,7 +168,7 @@
 
     .form-group input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+      box-shadow: 0 0 0 3px rgba(251,102,2,0.15);
     }
 
     .divider {
@@ -202,7 +201,7 @@
       padding: 13px;
       font-size: 14px;
       font-weight: 700;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
       cursor: pointer;
       margin-top: 6px;
       transition: filter 0.2s, transform 0.1s;

@@ -6,8 +6,8 @@
   <link rel="stylesheet" href="shared.css">
   <style>
     :root {
-      --bg: #0f172a; --card: #1e293b; --accent: #3b82f6;
-      --tx: #f8fafc; --mt: #94a3b8; --bd: #334155;
+      --bg: #0a0a0a; --card: #161616; --accent: #FB6602;
+      --tx: #F4F4F4; --mt: #6E6E6E; --bd: #2a2a2a;
       --red: #ef4444; --ok: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,17 +19,18 @@
     label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; }
     input, select { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; }
     input:focus, select:focus { outline: none; border-color: var(--accent); }
+    input.is-invalid, select.is-invalid { border-color: var(--no) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.15); }
 
     .btn-add { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; font-size: 14px; transition: filter .2s; }
     .btn-add:hover { filter: brightness(1.1); }
     .btn-sec { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%; margin-top: 6px; transition: all .2s; }
-    .btn-sec:hover { border-color: var(--red); color: var(--red); }
+    .btn-sec:hover { border-color: var(--no); color: var(--no); }
 
     main { flex: 1; padding: 24px; overflow-y: auto; }
     h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--tx); }
 
     .model-group { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 20px; transition: border-color .3s, background .3s; }
-    .model-group.unlocked { border-color: rgba(59,130,246,.5); background: rgba(59,130,246,.04); }
+    .model-group.unlocked { border-color: rgba(251,102,2,.5); background: rgba(251,102,2,.04); }
 
     .model-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bd); font-size: 14px; }
     .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
@@ -53,7 +54,7 @@
 
     .btn-lock { display: inline-flex; align-items: center; gap: 5px; background: rgba(51,65,85,.6); border: 1px solid var(--bd); color: var(--mt); padding: 5px 11px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; white-space: nowrap; }
     .btn-lock:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-lock.unlocked { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.4); color: var(--accent); }
+    .btn-lock.unlocked { background: rgba(251,102,2,.12); border-color: rgba(251,102,2,.4); color: var(--accent); }
 
     table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
     th { text-align: left; color: var(--mt); padding: 10px 12px; border-bottom: 1px solid var(--bd); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
@@ -62,19 +63,19 @@
 
     .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
     .status-dot.on  { background: var(--ok); }
-    .status-dot.off { background: var(--red); animation: blink 2s infinite; }
+    .status-dot.off { background: var(--no); animation: blink 2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
     @media (prefers-reduced-motion: reduce) {
       .status-dot.off { animation: none; }
       .sbadge.off     { animation: none; }
     }
 
-    .btn-tinta { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
+    .btn-tinta { background: rgba(251,102,2,.1); border: 1px solid rgba(251,102,2,.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
     .btn-tinta:hover { background: var(--accent); color: #fff; }
     .btn-del { background: none; border: none; color: #475569; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; }
     .btn-del:hover { color: var(--red); }
     .btn-edit { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.2); color: var(--mt); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
-    .btn-edit:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,.08); }
+    .btn-edit:hover { border-color: var(--accent); color: var(--accent); background: rgba(251,102,2,.08); }
     .btn-print { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); color: var(--ok); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
     .btn-print:hover { background: var(--ok); color: #fff; }
 
@@ -90,8 +91,8 @@
     .btn-save { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; flex: 1; transition: filter .2s; font-family: inherit; }
     .btn-save:hover { filter: brightness(1.1); }
     .btn-cancel { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; font-family: inherit; }
-    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
-    .senha-erro { font-size: 12px; color: var(--red); display: none; margin: -6px 0 10px; }
+    .btn-cancel:hover { border-color: var(--no); color: var(--no); }
+    .senha-erro { font-size: 12px; color: var(--no); display: none; margin: -6px 0 10px; }
     .senha-erro.show { display: block; }
 
     code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
@@ -107,7 +108,7 @@
     .user-bar span { font-size: 12px; color: var(--mt); }
     .user-bar strong { color: var(--tx); font-size: 12px; }
     .btn-logout { background: none; border: none; color: var(--mt); font-size: 11px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; font-family: inherit; }
-    .btn-logout:hover { color: var(--red); }
+    .btn-logout:hover { color: var(--no); }
   </style>
 </head>
 <body>
@@ -505,13 +506,31 @@
 
   document.getElementById('formAdd').onsubmit = async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    await fetch('/api/impressoras', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    e.target.reset(); showToast('Impressora cadastrada!'); carregarDados();
+    const form = e.target;
+    const data = Object.fromEntries(new FormData(form));
+
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    const modeloEl = form.querySelector('[name="modelo"]');
+    if (!data.modelo || !data.modelo.trim()) {
+      modeloEl.classList.add('is-invalid');
+      modeloEl.focus();
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/impressoras', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error();
+      form.reset(); showToast('Impressora cadastrada!'); carregarDados();
+    } catch { showToast('Erro ao cadastrar impressora!', true); }
   };
+
+  document.querySelectorAll('#formAdd input, #formAdd select').forEach(el => {
+    el.addEventListener('input', function() { this.classList.remove('is-invalid'); });
+    el.addEventListener('change', function() { this.classList.remove('is-invalid'); });
+  });
 
   function abrirEdicaoBtn(btn) {
     document.getElementById('editId').value          = btn.dataset.id;

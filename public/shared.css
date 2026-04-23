@@ -3,10 +3,10 @@
   --bg:   #0a0a0a;
   --card: #161616;
   --bd:   #2a2a2a;
-  --red:  #cc0000;
-  --blue: #3b82f6;
-  --tx:   #f1f1f1;
-  --mt:   #666;
+  --red:  #FB6602;
+  --blue: #FB6602;
+  --tx:   #F4F4F4;
+  --mt:   #6E6E6E;
   --ok:   #10b981;
   --no:   #ef4444;
   --cy:   #06b6d4;
@@ -59,7 +59,7 @@ body {
 .fill.magenta { background: linear-gradient(90deg, #a21caf, var(--mg)); }
 .fill.yellow  { background: linear-gradient(90deg, #a16207, var(--yw)); }
 .fill.black   { background: linear-gradient(90deg, #334155, var(--bk)); }
-.fill.def     { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.fill.def     { background: linear-gradient(90deg, #d45600, #FB6602); }
 
 /* ── Badge de status ────────────────────────────────────────────────────────── */
 .sbadge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; flex-shrink: 0; }

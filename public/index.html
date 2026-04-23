@@ -240,6 +240,7 @@
   const UNLOCK_DURATION = 5 * 60;
   const unlockedGroups  = {};
   let   modeloPendente  = null;
+  let   estoqueToken    = null;
 
   (function() {
     try {
@@ -307,6 +308,7 @@
         document.getElementById('senhaInput').value = '';
         document.getElementById('senhaInput').focus();
       } else {
+        estoqueToken = json.token;
         document.getElementById('modalSenha').classList.remove('open');
         if (modeloPendente) { unlockGroup(modeloPendente); modeloPendente = null; }
       }
@@ -469,7 +471,7 @@
     span.style.color = 'var(--accent)';
     try {
       const res = await fetch('/api/estoque', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${estoqueToken}` },
         body: JSON.stringify({ modelo: mod, insumo, quantidade: novo, estado: 'Novo' })
       });
       if (!res.ok) throw new Error();
@@ -483,7 +485,7 @@
     const est = await res.json();
     for (const item of est) {
       await fetch('/api/estoque', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${estoqueToken}` },
         body: JSON.stringify({ modelo: item.modelo, insumo: item.insumo, quantidade: 0, estado: 'Novo' })
       });
     }

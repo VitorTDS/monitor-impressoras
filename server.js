@@ -10,6 +10,48 @@ const crypto       = require('crypto');
 
 const app = express();
 
+// ── Validação de IP e campos de impressora ────────────────────────────────────
+const IPV4_RE = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+
+function validarImpressora(body, obrigatorio = true) {
+    const erros = [];
+    const { nome, ip, modelo } = body;
+    if (obrigatorio || nome !== undefined) {
+        if (!nome || typeof nome !== 'string' || !nome.trim()) erros.push('nome é obrigatório');
+    }
+    if (obrigatorio || ip !== undefined) {
+        if (ip !== undefined && !IPV4_RE.test(String(ip).trim())) erros.push('ip inválido (use formato IPv4)');
+    }
+    if (obrigatorio || modelo !== undefined) {
+        if (!modelo || typeof modelo !== 'string' || !modelo.trim()) erros.push('modelo é obrigatório');
+    }
+    return erros;
+}
+
+// ── Tokens de estoque (memória, TTL 5 min) ────────────────────────────────────
+const estoqueTokens = new Map();
+
+function gerarTokenEstoque() {
+    const token = crypto.randomBytes(24).toString('hex');
+    estoqueTokens.set(token, Date.now() + 5 * 60 * 1000);
+    return token;
+}
+
+function verificarTokenEstoque(req, res, next) {
+    const auth  = req.headers['authorization'] || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    const exp   = estoqueTokens.get(token);
+    if (!exp || Date.now() > exp) return res.status(401).json({ erro: 'Não autorizado' });
+    next();
+}
+
+// ── Cache do dashboard (30 s) ─────────────────────────────────────────────────
+let dashCache   = null;
+let dashCacheAt = 0;
+const DASH_TTL  = 30_000;
+
+function invalidarCacheDash() { dashCacheAt = 0; }
+
 // ── Credencial de estoque ─────────────────────────────────────────────────────
 // Defina ESTOQUE_SENHA no ambiente antes de iniciar. Sem a variável o servidor
 // gera um token aleatório por boot — impossibilitando login não intencional.
@@ -111,6 +153,8 @@ function obterDadosSNMP(ip, comunidade) {
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 
 app.get('/api/dashboard', (req, res, next) => {
+    if (dashCache && Date.now() - dashCacheAt < DASH_TTL) return res.json(dashCache);
+
     db.all('SELECT id, nome, ip, modelo, localizacao, comunidade, tipo, material FROM impressoras', [], async (err, rows) => {
         if (err) { console.error(err); return next(err); }
         try {
@@ -125,6 +169,8 @@ app.get('/api/dashboard', (req, res, next) => {
                 };
             });
             const resultados = await Promise.all(promessas);
+            dashCache   = resultados;
+            dashCacheAt = Date.now();
             res.json(resultados);
         } catch (e) {
             console.error(e);
@@ -134,18 +180,25 @@ app.get('/api/dashboard', (req, res, next) => {
 });
 
 app.post('/api/impressoras', (req, res, next) => {
+    const erros = validarImpressora(req.body, true);
+    if (erros.length) return res.status(400).json({ erro: erros.join('; ') });
+
     const { nome, ip, modelo, localizacao, comunidade, tipo, material } = req.body;
     db.run(
         `INSERT INTO impressoras (nome, ip, modelo, localizacao, comunidade, tipo, material) VALUES (?,?,?,?,?,?,?)`,
-        [nome, ip, modelo, localizacao, comunidade || 'public', tipo || 'Colorido', material || 'Toner'],
+        [nome.trim(), ip.trim(), modelo.trim(), localizacao, comunidade || 'public', tipo || 'Colorido', material || 'Toner'],
         (err) => {
             if (err) { console.error(err); return next(err); }
+            invalidarCacheDash();
             res.status(201).json({ sucesso: true });
         }
     );
 });
 
 app.put('/api/impressoras/:id', (req, res, next) => {
+    const erros = validarImpressora(req.body, false);
+    if (erros.length) return res.status(400).json({ erro: erros.join('; ') });
+
     const { nome, modelo, ip, localizacao, comunidade, tipo, material } = req.body;
     db.get('SELECT * FROM impressoras WHERE id = ?', [req.params.id], (err, existing) => {
         if (err) { console.error(err); return next(err); }
@@ -153,17 +206,18 @@ app.put('/api/impressoras/:id', (req, res, next) => {
         db.run(
             `UPDATE impressoras SET nome = ?, modelo = ?, ip = ?, localizacao = ?, comunidade = ?, tipo = ?, material = ? WHERE id = ?`,
             [
-                nome        ?? existing.nome,
-                modelo      ?? existing.modelo,
-                ip          ?? existing.ip,
-                localizacao ?? existing.localizacao,
-                comunidade  ?? existing.comunidade,
-                tipo        ?? existing.tipo,
-                material    ?? existing.material,
+                (nome        ?? existing.nome)?.trim?.()        ?? existing.nome,
+                (modelo      ?? existing.modelo)?.trim?.()      ?? existing.modelo,
+                (ip          ?? existing.ip)?.trim?.()          ?? existing.ip,
+                localizacao  ?? existing.localizacao,
+                comunidade   ?? existing.comunidade,
+                tipo         ?? existing.tipo,
+                material     ?? existing.material,
                 req.params.id
             ],
             function (err) {
                 if (err) { console.error(err); return next(err); }
+                invalidarCacheDash();
                 res.json({ sucesso: true });
             }
         );
@@ -174,6 +228,7 @@ app.delete('/api/impressoras/:id', (req, res, next) => {
     db.run('DELETE FROM impressoras WHERE id = ?', req.params.id, function (err) {
         if (err) { console.error(err); return next(err); }
         if (this.changes === 0) return res.status(404).json({ erro: 'Impressora não encontrada' });
+        invalidarCacheDash();
         res.status(204).end();
     });
 });
@@ -184,7 +239,7 @@ app.get('/api/estoque', (req, res) => {
     });
 });
 
-app.post('/api/estoque', (req, res, next) => {
+app.post('/api/estoque', verificarTokenEstoque, (req, res, next) => {
     const { modelo, insumo, quantidade, estado } = req.body;
     db.run(
         `INSERT INTO estoque (modelo, insumo, quantidade, estado) VALUES (?,?,?,?)
@@ -197,7 +252,7 @@ app.post('/api/estoque', (req, res, next) => {
     );
 });
 
-app.delete('/api/estoque/:id', (req, res, next) => {
+app.delete('/api/estoque/:id', verificarTokenEstoque, (req, res, next) => {
     db.run('DELETE FROM estoque WHERE id = ?', req.params.id, function (err) {
         if (err) { console.error(err); return next(err); }
         if (this.changes === 0) return res.status(404).json({ erro: 'Item não encontrado' });
@@ -209,7 +264,7 @@ app.delete('/api/estoque/:id', (req, res, next) => {
 app.post('/api/auth/estoque', limiterAuth, (req, res) => {
     const { senha } = req.body;
     if (!senha) return res.status(400).json({ ok: false });
-    if (senha === ESTOQUE_SENHA) return res.json({ ok: true });
+    if (senha === ESTOQUE_SENHA) return res.json({ ok: true, token: gerarTokenEstoque() });
     setTimeout(() => res.status(401).json({ ok: false }), 800);
 });
 

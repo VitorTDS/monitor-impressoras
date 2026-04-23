@@ -406,6 +406,16 @@
   </div>
 
 <script>
+  /* ─── Crypto helpers ─── */
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  function isBtoa(hash) {
+    return hash.length !== 64;
+  }
+
   /* ─── Utilitários de armazenamento ─── */
   function getUsers() {
     try { return JSON.parse(localStorage.getItem('ic_users') || '{}'); } catch { return {}; }
@@ -449,7 +459,7 @@
   }
 
   /* ─── Login ─── */
-  function doLogin() {
+  async function doLogin() {
     const user = document.getElementById('login-user').value.trim().toLowerCase();
     const pass = document.getElementById('login-pass').value;
     clearMsg('login-msg');
@@ -464,8 +474,18 @@
       showMsg('login-msg', 'Usuário não encontrado. Crie uma conta primeiro.', 'error'); return;
     }
 
-    if (users[user].pass !== btoa(unescape(encodeURIComponent(pass)))) {
+    const stored  = users[user].pass;
+    const btoaVal = btoa(unescape(encodeURIComponent(pass)));
+    const sha     = await sha256(pass);
+    const valid   = isBtoa(stored) ? stored === btoaVal : stored === sha;
+
+    if (!valid) {
       showMsg('login-msg', 'Senha incorreta. Tente novamente.', 'error'); return;
+    }
+
+    if (isBtoa(stored)) {
+      users[user].pass = sha;
+      saveUsers(users);
     }
 
     showMsg('login-msg', '✓ Acesso autorizado! Redirecionando...', 'success');
@@ -478,7 +498,7 @@
   }
 
   /* ─── Cadastro ─── */
-  function doRegister() {
+  async function doRegister() {
     const name  = document.getElementById('reg-name').value.trim();
     const user  = document.getElementById('reg-user').value.trim().toLowerCase();
     const pass  = document.getElementById('reg-pass').value;
@@ -508,7 +528,7 @@
 
     users[user] = {
       name,
-      pass: btoa(unescape(encodeURIComponent(pass))),
+      pass: await sha256(pass),
       createdAt: new Date().toISOString()
     };
     saveUsers(users);

@@ -1,0 +1,91 @@
+/* ── Variáveis globais ──────────────────────────────────────────────────────── */
+:root {
+  --bg:   #0a0a0a;
+  --card: #161616;
+  --bd:   #2a2a2a;
+  --red:  #cc0000;
+  --blue: #3b82f6;
+  --tx:   #f1f1f1;
+  --mt:   #666;
+  --ok:   #10b981;
+  --no:   #ef4444;
+  --cy:   #06b6d4;
+  --mg:   #d946ef;
+  --yw:   #eab308;
+  --bk:   #64748b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 10px; }
+
+/* ── Topbar ─────────────────────────────────────────────────────────────────── */
+.topbar {
+  background: #000;
+  border-bottom: 2px solid var(--red);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 28px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { color: var(--red); font-weight: 900; font-size: 20px; }
+.sub  { color: var(--mt); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+.tright { display: flex; align-items: center; gap: 14px; }
+#clock { font-family: 'Courier New', monospace; font-size: 22px; color: var(--red); }
+
+/* ── Botões de navegação ────────────────────────────────────────────────────── */
+.btn { border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: filter 0.2s; }
+.btn.pr { background: var(--blue); color: #fff; }
+.btn.sc { background: #1e293b; color: var(--tx); }
+.btn:hover { filter: brightness(1.2); }
+
+/* ── Barras de suprimento ───────────────────────────────────────────────────── */
+.bar  { background: #1a1a1a; border-radius: 5px; overflow: hidden; }
+.fill { height: 100%; border-radius: 5px; transition: width 1.2s cubic-bezier(.1,0,.2,1); }
+.fill.cyan    { background: linear-gradient(90deg, #0891b2, var(--cy)); }
+.fill.magenta { background: linear-gradient(90deg, #a21caf, var(--mg)); }
+.fill.yellow  { background: linear-gradient(90deg, #a16207, var(--yw)); }
+.fill.black   { background: linear-gradient(90deg, #334155, var(--bk)); }
+.fill.def     { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+
+/* ── Badge de status ────────────────────────────────────────────────────────── */
+.sbadge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.sbadge.on  { background: rgba(16,185,129,.12); color: var(--ok); border: 1px solid rgba(16,185,129,.4); }
+.sbadge.off { background: rgba(239,68,68,.12);  color: var(--no); border: 1px solid rgba(239,68,68,.4); animation: blink 2s 6 forwards; }
+
+/* ── Loader overlay ─────────────────────────────────────────────────────────── */
+.loader { position: fixed; inset: 0; background: rgba(10,10,10,.75); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.loader.show { opacity: 1; pointer-events: all; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--bd); border-top-color: var(--red); border-radius: 50%; animation: spin .8s linear infinite; }
+
+/* ── Animações ──────────────────────────────────────────────────────────────── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes spin   { to { transform: rotate(360deg); } }
+@keyframes flash  { 0%,100%{opacity:0} 50%{opacity:1} }
+@keyframes pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+/* ── Acessibilidade: respeitar preferência de movimento reduzido ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Estado vazio / erro ────────────────────────────────────────────────────── */
+.empty { grid-column: 1/-1; text-align: center; padding: 60px; color: var(--mt); font-size: 16px; }
+.empty.error { color: var(--no); }

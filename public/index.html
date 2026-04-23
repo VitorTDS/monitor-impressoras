@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>imageCLASS | Admin</title>
+  <link rel="stylesheet" href="shared.css">
   <style>
     :root {
       --bg: #0f172a; --card: #1e293b; --accent: #3b82f6;
@@ -63,6 +64,10 @@
     .status-dot.on  { background: var(--ok); }
     .status-dot.off { background: var(--red); animation: blink 2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    @media (prefers-reduced-motion: reduce) {
+      .status-dot.off { animation: none; }
+      .sbadge.off     { animation: none; }
+    }
 
     .btn-tinta { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
     .btn-tinta:hover { background: var(--accent); color: #fff; }

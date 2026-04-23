@@ -517,6 +517,9 @@
       return;
     }
 
+    const btn = form.querySelector('.btn-add');
+    btn.disabled = true;
+    btn.textContent = 'Registrando...';
     try {
       const res = await fetch('/api/impressoras', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -525,6 +528,7 @@
       if (!res.ok) throw new Error();
       form.reset(); showToast('Impressora cadastrada!'); carregarDados();
     } catch { showToast('Erro ao cadastrar impressora!', true); }
+    finally { btn.disabled = false; btn.textContent = '+ Registrar Equipamento'; }
   };
 
   document.querySelectorAll('#formAdd input, #formAdd select').forEach(el => {

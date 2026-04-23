@@ -158,7 +158,14 @@
       ab.style.display = 'flex';
       const strong = document.createElement('strong');
       strong.textContent = criticos.length + ' impressora(s) com tinta crítica: ';
-      const nomes = document.createTextNode(criticos.map(p => p.nome).join(', ') + ' — verificar reposição com urgência.');
+      const detalhes = criticos.map(p => {
+        const cores = (p.suprimentos || [])
+          .filter(s => s.percentual <= 15)
+          .map(s => `${s.nome} ${s.percentual}%`)
+          .join(', ');
+        return p.nome + (cores ? ` (${cores})` : '');
+      }).join(' · ');
+      const nomes = document.createTextNode(detalhes + ' — verificar reposição com urgência.');
       am.innerHTML = '';
       am.appendChild(strong);
       am.appendChild(nomes);

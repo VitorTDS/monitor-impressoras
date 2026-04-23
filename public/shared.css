@@ -31,7 +31,7 @@ body {
 
 /* ── Topbar ─────────────────────────────────────────────────────────────────── */
 .topbar {
-  background: #000;
+  background: var(--bg);
   border-bottom: 2px solid var(--red);
   display: flex;
   justify-content: space-between;

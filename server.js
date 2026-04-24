@@ -526,9 +526,12 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
         function enviarRaw() {
             const socket = new net.Socket();
             let respondeu = false;
+            // ESC E (reset) + conteúdo linha a linha + form feed + ESC E (fim de job)
+            const pcl = '\x1BE' + conteudo.split('\n').join('\r\n') + '\r\n\f\x1BE';
+            const buf  = Buffer.from(pcl, 'latin1');
             socket.setTimeout(5000);
             socket.connect(9100, imp.ip, () => {
-                socket.write(conteudo + '\r\n\f', 'utf8', () => {
+                socket.write(buf, () => {
                     socket.end();
                     if (!respondeu) { respondeu = true; res.json({ sucesso: true, aviso: 'Enviado via RAW' }); }
                 });

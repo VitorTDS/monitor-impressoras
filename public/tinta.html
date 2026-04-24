@@ -9,7 +9,7 @@
     .page-header { padding: 20px 28px 0; display: flex; justify-content: space-between; align-items: flex-end; }
     .ph-title { font-size: 22px; font-weight: 800; }
     .ph-sub   { font-size: 12px; color: var(--mt); margin-top: 4px; }
-    .lupd { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #555; }
+    .lupd { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--mt); }
     .dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s 5 forwards; }
 
     .alert-global { margin: 16px 28px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--no); }
@@ -18,13 +18,13 @@
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 20px 28px; }
 
     .card { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
-    .card:hover { border-color: #444; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+    .card:hover { border-color: #ccc; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
     .card.crit  { border-color: rgba(239,68,68,.35); }
 
     .ctop { padding: 14px 16px 12px; border-bottom: 1px solid var(--bd); display: flex; justify-content: space-between; align-items: center; }
     .pname { font-size: 15px; font-weight: 700; }
-    .pip   { font-size: 12px; color: var(--red); font-weight: 600; margin-top: 2px; }
-    .ploc  { font-size: 10px; color: #555; margin-top: 2px; }
+    .pip   { font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 2px; }
+    .ploc  { font-size: 10px; color: var(--mt); margin-top: 2px; }
     .pmod  { font-size: 10px; color: var(--mt); margin-top: 2px; }
 
     .sbadge { padding: 4px 10px; font-size: 10px; }
@@ -51,10 +51,10 @@
     .fill.black   { background: var(--bk); }
     .fill.low::after { content: ''; position: absolute; inset: 0; background: rgba(239,68,68,.35); animation: flash 1s 6 forwards; }
 
-    .nosnmp { color: #333; font-size: 12px; padding: 20px; text-align: center; }
+    .nosnmp { color: var(--mt); font-size: 12px; padding: 20px; text-align: center; }
 
     .cfoot { padding: 10px 16px; border-top: 1px solid var(--bd); display: flex; justify-content: space-between; align-items: center; }
-    .lck   { font-size: 10px; color: #444; }
+    .lck   { font-size: 10px; color: var(--mt); }
     .btr   { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.2); color: var(--blue); padding: 4px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
     .btr:hover { background: var(--blue); color: #fff; }
 
@@ -79,7 +79,7 @@
 
 <div class="topbar">
   <div>
-    <div class="logo">Impressoras Sobral</div>
+    <div class="logo"><div class="logo-dot"></div>Impressoras Sobral</div>
     <div class="sub">Níveis de Suprimentos</div>
   </div>
   <div class="tright">

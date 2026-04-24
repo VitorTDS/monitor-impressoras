@@ -1,28 +1,43 @@
-/* ── Topbar ─────────────────────────────────────────────────────────────────── */
-.topbar-admin {
-  background: var(--accent); padding: 0 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  height: 56px; position: sticky; top: 0; z-index: 100; flex-shrink: 0;
+/* ── Sidebar ─────────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 220px; background: #0f172a; position: fixed;
+  top: 0; left: 0; bottom: 0; display: flex; flex-direction: column;
+  z-index: 100; box-shadow: 2px 0 16px rgba(0,0,0,.25);
 }
-.topbar-left { display: flex; align-items: center; gap: 24px; }
-.tb-logo { color: #fff; font-size: 15px; font-weight: 900; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
-.tb-logo-dot { width: 8px; height: 8px; background: rgba(255,255,255,0.6); border-radius: 50%; flex-shrink: 0; }
-.nav-links { display: flex; gap: 2px; }
-.nav-item {
-  display: flex; align-items: center; gap: 7px; padding: 7px 13px;
-  color: rgba(255,255,255,0.75); font-size: 13px; font-weight: 500;
-  border: none; background: none; font-family: inherit;
-  border-radius: 6px; transition: all .15s; white-space: nowrap;
-  text-decoration: none; cursor: pointer;
+.sb-brand {
+  padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 11px;
 }
-.nav-item:hover  { background: rgba(255,255,255,0.12); color: #fff; }
-.nav-item.active { background: rgba(255,255,255,0.2);  color: #fff; font-weight: 700; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-#clock { font-family: 'Courier New', monospace; font-size: 13px; color: rgba(255,255,255,0.85); letter-spacing: 1px; }
-.user-chip { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 12px 4px 5px; }
-.user-avatar { width: 24px; height: 24px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
-.btn-logout { background: none; border: none; color: rgba(255,255,255,0.75); font-size: 12px; cursor: pointer; padding: 6px 4px; font-family: inherit; transition: color .2s; }
-.btn-logout:hover { color: #fff; }
+.sb-dot { width: 9px; height: 9px; background: #FB6602; border-radius: 50%; flex-shrink: 0; }
+.sb-brand strong { color: #fff; font-size: 13px; font-weight: 800; display: block; line-height: 1.3; }
+.sb-brand span   { color: rgba(255,255,255,.3); font-size: 10px; }
+.sb-nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+.sb-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+  color: rgba(255,255,255,.5); font-size: 13px; text-decoration: none;
+  border-left: 3px solid transparent; transition: all .15s; white-space: nowrap;
+}
+.sb-item:hover  { color: rgba(255,255,255,.85); background: rgba(255,255,255,.06); }
+.sb-item.active { color: #fff; background: rgba(251,102,2,.15); border-left-color: #FB6602; }
+.sb-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.06); }
+.sb-user   { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.sb-avatar { width: 30px; height: 30px; background: #FB6602; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+.sb-user strong { color: #fff; font-size: 12px; display: block; }
+.sb-user span   { color: rgba(255,255,255,.3); font-size: 10px; }
+.sb-theme  { width: 100%; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.7); font-size: 12px; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 8px; transition: all .2s; font-family: inherit; }
+.sb-theme:hover  { background: rgba(255,255,255,.14); color: #fff; }
+.sb-logout { width: 100%; background: none; border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.4); font-size: 12px; padding: 7px; border-radius: 6px; cursor: pointer; transition: all .2s; font-family: inherit; }
+.sb-logout:hover { border-color: #ef4444; color: #ef4444; }
+
+/* Sidebar ligeiramente mais escura no dark mode para criar separação do conteúdo */
+[data-theme="dark"] .sidebar { background: #060d1a; box-shadow: 2px 0 16px rgba(0,0,0,.5); }
+
+/* ── Main wrap ───────────────────────────────────────────────────────────────── */
+.main-wrap    { margin-left: 220px; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.main-topbar  { background: var(--card); border-bottom: 1px solid var(--bd); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.main-title   { font-size: 17px; font-weight: 800; color: var(--tx); }
+.main-clock   { font-family: 'Courier New', monospace; font-size: 13px; color: var(--mt); letter-spacing: 1px; }
+.main-content { padding: 28px; flex: 1; }
 
 /* ── Modais ─────────────────────────────────────────────────────────────────── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; padding: 16px; }
@@ -55,7 +70,7 @@
 /* ── Formulários ────────────────────────────────────────────────────────────── */
 label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; letter-spacing: .5px; }
 input, select, textarea { width: 100%; background: var(--bg); border: 1.5px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); background: var(--card); }
 input.is-invalid, select.is-invalid { border-color: var(--no) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.1); }
 .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .btn-add { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; font-size: 14px; transition: filter .2s; font-family: inherit; }
@@ -66,7 +81,7 @@ input.is-invalid, select.is-invalid { border-color: var(--no) !important; box-sh
 .table-wrap { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; color: var(--mt); padding: 10px 12px; border-bottom: 2px solid var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; background: var(--card); }
-td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--bd); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(251,102,2,.02); }
 code { background: rgba(0,0,0,.05); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
@@ -75,11 +90,14 @@ code { background: rgba(0,0,0,.05); padding: 2px 6px; border-radius: 4px; font-f
 .btn-edit { background: rgba(110,110,110,.08); border: 1px solid rgba(110,110,110,.2); color: var(--mt); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
 .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ── Dark mode overrides ─────────────────────────────────────────────────────── */
+[data-theme="dark"] .loader { background: rgba(15,23,42,.85); }
+
 /* ── Responsivo ─────────────────────────────────────────────────────────────── */
-@media (max-width: 900px) { .nav-links .nav-item { padding: 7px 10px; font-size: 12px; } }
+@media (max-width: 900px) { .main-content { padding: 20px; } }
 @media (max-width: 640px) {
-  .topbar-admin { padding: 0 12px; }
-  #clock { display: none; }
+  .sidebar { display: none; }
+  .main-wrap { margin-left: 0; }
   .fgrid { grid-template-columns: 1fr; }
   .table-wrap { overflow-x: auto; }
   table { white-space: nowrap; }

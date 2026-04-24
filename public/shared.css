@@ -1,18 +1,19 @@
 /* ── Variáveis globais ──────────────────────────────────────────────────────── */
 :root {
-  --bg:   #0a0a0a;
-  --card: #161616;
-  --bd:   #2a2a2a;
-  --red:  #FB6602;
-  --blue: #FB6602;
-  --tx:   #F4F4F4;
-  --mt:   #6E6E6E;
-  --ok:   #10b981;
-  --no:   #ef4444;
-  --cy:   #06b6d4;
-  --mg:   #d946ef;
-  --yw:   #eab308;
-  --bk:   #64748b;
+  --bg:     #F4F4F4;
+  --card:   #ffffff;
+  --bd:     #e5e5e5;
+  --red:    #FB6602;
+  --blue:   #FB6602;
+  --tx:     #1a1a1a;
+  --mt:     #6E6E6E;
+  --ok:     #10b981;
+  --no:     #ef4444;
+  --cy:     #06b6d4;
+  --mg:     #d946ef;
+  --yw:     #eab308;
+  --bk:     #64748b;
+  --accent: #FB6602;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,33 +28,35 @@ body {
 /* ── Scrollbar ──────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #d0d0d0; border-radius: 10px; }
 
 /* ── Topbar ─────────────────────────────────────────────────────────────────── */
 .topbar {
-  background: var(--bg);
-  border-bottom: 2px solid var(--red);
+  background: #FB6602;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 28px;
+  padding: 0 28px;
+  height: 56px;
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-shrink: 0;
 }
-.logo { color: var(--red); font-weight: 900; font-size: 20px; }
-.sub  { color: var(--mt); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+.logo { color: #fff; font-weight: 900; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 8px; height: 8px; background: rgba(255,255,255,0.6); border-radius: 50%; }
+.sub  { color: rgba(255,255,255,0.7); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
 .tright { display: flex; align-items: center; gap: 14px; }
-#clock { font-family: 'Courier New', monospace; font-size: 22px; color: var(--red); }
+#clock { font-family: 'Courier New', monospace; font-size: 14px; color: rgba(255,255,255,0.85); letter-spacing: 1px; }
 
 /* ── Botões de navegação ────────────────────────────────────────────────────── */
-.btn { border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: filter 0.2s; }
-.btn.pr { background: var(--blue); color: #fff; }
-.btn.sc { background: #1e293b; color: var(--tx); }
-.btn:hover { filter: brightness(1.2); }
+.btn { border: none; padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: filter 0.2s; }
+.btn.pr { background: rgba(255,255,255,0.2); color: #fff; }
+.btn.sc { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+.btn:hover { filter: brightness(1.15); }
 
 /* ── Barras de suprimento ───────────────────────────────────────────────────── */
-.bar  { background: #1a1a1a; border-radius: 5px; overflow: hidden; }
+.bar  { background: #e8e8e8; border-radius: 5px; overflow: hidden; }
 .fill { height: 100%; border-radius: 5px; transition: width 1.2s cubic-bezier(.1,0,.2,1); }
 .fill.cyan    { background: linear-gradient(90deg, #0891b2, var(--cy)); }
 .fill.magenta { background: linear-gradient(90deg, #a21caf, var(--mg)); }
@@ -62,14 +65,14 @@ body {
 .fill.def     { background: linear-gradient(90deg, #d45600, #FB6602); }
 
 /* ── Badge de status ────────────────────────────────────────────────────────── */
-.sbadge { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-.sbadge.on  { background: rgba(16,185,129,.12); color: var(--ok); border: 1px solid rgba(16,185,129,.4); }
-.sbadge.off { background: rgba(239,68,68,.12);  color: var(--no); border: 1px solid rgba(239,68,68,.4); animation: blink 2s 6 forwards; }
+.sbadge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.sbadge.on  { background: #ecfdf5; color: #059669; }
+.sbadge.off { background: #fef2f2; color: #dc2626; animation: blink 2s 6 forwards; }
 
 /* ── Loader overlay ─────────────────────────────────────────────────────────── */
-.loader { position: fixed; inset: 0; background: rgba(10,10,10,.75); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.loader { position: fixed; inset: 0; background: rgba(244,244,244,.8); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .3s; }
 .loader.show { opacity: 1; pointer-events: all; }
-.spinner { width: 36px; height: 36px; border: 3px solid var(--bd); border-top-color: var(--red); border-radius: 50%; animation: spin .8s linear infinite; }
+.spinner { width: 36px; height: 36px; border: 3px solid #e5e5e5; border-top-color: #FB6602; border-radius: 50%; animation: spin .8s linear infinite; }
 
 /* ── Animações ──────────────────────────────────────────────────────────────── */
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
@@ -79,7 +82,7 @@ body {
 
 /* ── Responsividade ─────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .topbar { padding: 10px 16px; }
+  .topbar { padding: 0 16px; }
   #clock  { display: none; }
   .tright { gap: 8px; }
   .btn    { padding: 6px 10px; font-size: 11px; }

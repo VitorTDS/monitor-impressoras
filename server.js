@@ -511,7 +511,7 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
             ippAttr(0x45, 'printer-uri', printerUri),
             ippAttr(0x42, 'requesting-user-name', 'imageCLASS'),
             ippAttr(0x42, 'job-name', 'Impressao-Sistema'),
-            ippAttr(0x44, 'document-format', 'text/plain'),
+            ippAttr(0x44, 'document-format', 'application/octet-stream'),
             Buffer.from([0x03])
         ]);
 
@@ -523,6 +523,20 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
 
         const ippBody = Buffer.concat([header, attrs, psBuffer]);
 
+        function enviarRaw() {
+            const socket = new net.Socket();
+            let respondeu = false;
+            socket.setTimeout(5000);
+            socket.connect(9100, imp.ip, () => {
+                socket.write(conteudo + '\r\n\f', 'utf8', () => {
+                    socket.end();
+                    if (!respondeu) { respondeu = true; res.json({ sucesso: true, aviso: 'Enviado via RAW' }); }
+                });
+            });
+            socket.on('timeout', () => { socket.destroy(); if (!respondeu) { respondeu = true; res.status(504).json({ erro: 'Timeout' }); } });
+            socket.on('error',   () => { if (!respondeu) { respondeu = true; res.status(500).json({ erro: 'Impressora não respondeu em IPP nem RAW.' }); } });
+        }
+
         const reqHttp = http.request({
             hostname: imp.ip, port: 631, path: '/ipp/print', method: 'POST',
             headers: { 'Content-Type': 'application/ipp', 'Content-Length': ippBody.length }
@@ -533,33 +547,14 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
                 const buf = Buffer.concat(data);
                 if (buf.length >= 4) {
                     const statusCode = buf.readUInt16BE(2);
-                    if (statusCode >= 0x0400) {
-                        return res.status(500).json({ erro: `Impressora recusou: código IPP ${statusCode.toString(16)}` });
-                    }
+                    if (statusCode === 0x040a) return enviarRaw();
+                    if (statusCode >= 0x0400) return res.status(500).json({ erro: `Impressora recusou: código IPP ${statusCode.toString(16)}` });
                 }
                 res.json({ sucesso: true });
             });
         });
 
-        reqHttp.on('error', () => {
-            const socket = new net.Socket();
-            let respondeu = false;
-            socket.setTimeout(5000);
-            socket.connect(9100, imp.ip, () => {
-                socket.write(conteudo + '\r\n\f', 'utf8', () => {
-                    socket.end();
-                    if (!respondeu) { respondeu = true; res.json({ sucesso: true, aviso: 'Enviado via RAW' }); }
-                });
-            });
-            socket.on('timeout', () => {
-                socket.destroy();
-                if (!respondeu) { respondeu = true; res.status(504).json({ erro: 'Timeout' }); }
-            });
-            socket.on('error', () => {
-                if (!respondeu) { respondeu = true; res.status(500).json({ erro: 'Impressora não respondeu em IPP nem RAW. Verifique a rede.' }); }
-            });
-        });
-
+        reqHttp.on('error', () => enviarRaw());
         reqHttp.setTimeout(8000, () => reqHttp.destroy());
         reqHttp.write(ippBody);
         reqHttp.end();

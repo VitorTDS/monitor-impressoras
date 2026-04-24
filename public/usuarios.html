@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impressoras Sobral | Usuários</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    .section-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
+    .form-card { background: var(--card); border-radius: 14px; padding: 24px; max-width: 460px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body>
+<script src="admin-auth.js"></script>
+<script>requireAuth();</script>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:340px">
+    <h4 id="confirmTitle">Confirmar</h4>
+    <p id="confirmMsg" style="font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modalConfirm').classList.remove('open')">Cancelar</button>
+      <button class="btn-save" id="btnConfirmOk" style="background:var(--no)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<header class="topbar-admin">
+  <div class="topbar-left">
+    <div class="tb-logo"><div class="tb-logo-dot"></div>Impressoras Sobral</div>
+    <nav class="nav-links">
+      <a href="admin.html"        class="nav-item">📊 Dashboard</a>
+      <a href="dispositivos.html" class="nav-item">🖨️ Dispositivos</a>
+      <a href="cadastrar.html"    class="nav-item">➕ Cadastrar</a>
+      <a href="estoque.html"      class="nav-item">📦 Estoque</a>
+      <a href="usuarios.html"     class="nav-item">👥 Usuários</a>
+    </nav>
+  </div>
+  <div class="topbar-right">
+    <span id="clock"></span>
+    <div class="user-chip">
+      <div class="user-avatar">👤</div>
+      <span id="userLabel" style="color:#fff;font-size:12px;font-weight:600">—</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+</header>
+
+<main style="padding:28px;flex:1">
+  <div style="font-size:18px;font-weight:800;margin-bottom:20px">👥 Usuários do Sistema</div>
+
+  <div class="table-wrap" style="margin-bottom:28px">
+    <table>
+      <thead><tr><th>Nome</th><th>Usuário</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
+      <tbody id="usuariosBody">
+        <tr><td colspan="5" style="text-align:center;color:var(--mt);padding:24px">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title">➕ Novo Usuário</div>
+  <div class="form-card">
+    <div class="fgrid">
+      <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva"></div>
+      <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva"></div>
+    </div>
+    <label>Senha inicial</label>
+    <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres">
+    <div id="uMsg" style="font-size:12px;margin:8px 0;min-height:18px"></div>
+    <button class="btn-add" onclick="criarUsuario()">+ Criar Usuário</button>
+  </div>
+</main>
+
+<script>
+  initUserLabel(); initClock(); setActiveNav();
+
+  let _confirmCb = null;
+
+  function showToast(msg, erro = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.background = erro ? '#ef4444' : '#10b981';
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function confirmar(titulo, msg, cb) {
+    document.getElementById('confirmTitle').textContent = titulo;
+    document.getElementById('confirmMsg').textContent   = msg;
+    _confirmCb = cb;
+    document.getElementById('modalConfirm').classList.add('open');
+    setTimeout(() => document.getElementById('btnConfirmOk').focus(), 150);
+  }
+
+  document.getElementById('btnConfirmOk').addEventListener('click', async () => {
+    document.getElementById('modalConfirm').classList.remove('open');
+    if (_confirmCb) { const cb = _confirmCb; _confirmCb = null; await cb(); }
+  });
+
+  document.getElementById('modalConfirm').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
+  function criarLinhaUsuario(u) {
+    const tr = document.createElement('tr');
+    const tdNome = document.createElement('td');
+    const strong = document.createElement('strong');
+    strong.textContent = u.nome; tdNome.appendChild(strong);
+    const tdUser = document.createElement('td');
+    const code   = document.createElement('code');
+    code.textContent = u.usuario; tdUser.appendChild(code);
+    const tdStatus = document.createElement('td');
+    const dot = document.createElement('span');
+    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:' + (u.ativo ? 'var(--ok)' : 'var(--no)');
+    tdStatus.appendChild(dot);
+    tdStatus.appendChild(document.createTextNode(u.ativo ? 'Ativo' : 'Inativo'));
+    const tdData = document.createElement('td');
+    tdData.textContent = new Date(u.criado_em).toLocaleDateString('pt-BR');
+    tdData.style.cssText = 'color:var(--mt);font-size:12px';
+    const tdAcoes = document.createElement('td');
+    tdAcoes.style.cssText = 'display:flex;gap:8px';
+    const btnToggle = document.createElement('button');
+    btnToggle.className = 'btn-edit';
+    btnToggle.textContent = u.ativo ? 'Desativar' : 'Ativar';
+    btnToggle.addEventListener('click', () => toggleUsuario(u.id, u.ativo));
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn-del'; btnDel.textContent = '✕';
+    btnDel.addEventListener('click', () => removerUsuario(u.id));
+    tdAcoes.appendChild(btnToggle); tdAcoes.appendChild(btnDel);
+    tr.appendChild(tdNome); tr.appendChild(tdUser); tr.appendChild(tdStatus);
+    tr.appendChild(tdData); tr.appendChild(tdAcoes);
+    return tr;
+  }
+
+  async function carregarUsuarios() {
+    const res  = await fetch('/api/usuarios', { headers: authHeaders() });
+    const rows = res.ok ? await res.json() : [];
+    const body = document.getElementById('usuariosBody');
+    body.replaceChildren();
+    if (!rows.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 5; td.style.cssText = 'text-align:center;color:var(--mt);padding:24px';
+      td.textContent = 'Nenhum usuário cadastrado.'; tr.appendChild(td); body.appendChild(tr);
+      return;
+    }
+    rows.forEach(u => body.appendChild(criarLinhaUsuario(u)));
+  }
+
+  async function criarUsuario() {
+    const nome    = document.getElementById('uNome').value.trim();
+    const usuario = document.getElementById('uUsuario').value.trim().toLowerCase();
+    const senha   = document.getElementById('uSenha').value;
+    const msg     = document.getElementById('uMsg');
+    msg.style.color = 'var(--no)'; msg.textContent = '';
+    if (!nome || !usuario || !senha) { msg.textContent = 'Preencha todos os campos.'; return; }
+    if (senha.length < 6) { msg.textContent = 'Senha deve ter ao menos 6 caracteres.'; return; }
+    try {
+      const res  = await fetch('/api/usuarios', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ nome, usuario, senha })
+      });
+      const json = await res.json();
+      if (!res.ok) { msg.textContent = json.erro || 'Erro ao criar usuário.'; return; }
+      document.getElementById('uNome').value = '';
+      document.getElementById('uUsuario').value = '';
+      document.getElementById('uSenha').value = '';
+      msg.style.color = 'var(--ok)'; msg.textContent = '✓ Usuário criado com sucesso!';
+      carregarUsuarios();
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    } catch { msg.textContent = 'Erro de conexão.'; }
+  }
+
+  async function toggleUsuario(id, ativo) {
+    await fetch('/api/usuarios/' + id, {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ ativo: !ativo })
+    });
+    carregarUsuarios();
+  }
+
+  async function removerUsuario(id) {
+    confirmar('Remover usuário', 'Esta ação não pode ser desfeita.', async () => {
+      const res = await fetch('/api/usuarios/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (!res.ok) { const j = await res.json(); showToast(j.erro || 'Erro ao remover.', true); return; }
+      carregarUsuarios();
+    });
+  }
+
+  carregarUsuarios();
+</script>
+</body>
+</html>

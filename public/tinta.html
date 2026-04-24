@@ -173,6 +173,11 @@
       ab.style.display = 'none';
     }
 
+    if (!dadosCache.length) {
+      g.innerHTML = '<div class="empty">Nenhuma impressora cadastrada. <a href="index.html" style="color:var(--blue)">Acesse o Admin</a> para adicionar.</div>';
+      return;
+    }
+
     g.innerHTML = dadosCache.map(p => {
       const sup   = Array.isArray(p.suprimentos) ? p.suprimentos : [];
       const baixa = tBaixa(sup);

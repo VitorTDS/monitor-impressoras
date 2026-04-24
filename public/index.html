@@ -160,6 +160,18 @@
   </div>
 </div>
 
+<!-- Modal confirmação de ação destrutiva -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:340px">
+    <h4 id="confirmTitle">Confirmar</h4>
+    <p id="confirmMsg" style="font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modalConfirm').classList.remove('open')">Cancelar</button>
+      <button class="btn-save" id="btnConfirmOk" style="background:var(--no)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal senha de desbloqueio -->
 <div class="modal-overlay" id="modalSenha">
   <div class="modal" style="max-width:320px">
@@ -268,6 +280,19 @@
     return 'bg-black';
   }
   function limparID(t) { return t.replace(/[^a-zA-Z0-9]/g, ''); }
+  let _confirmCb = null;
+  function confirmar(titulo, msg, cb) {
+    document.getElementById('confirmTitle').textContent = titulo;
+    document.getElementById('confirmMsg').textContent = msg;
+    _confirmCb = cb;
+    document.getElementById('modalConfirm').classList.add('open');
+    setTimeout(() => document.getElementById('btnConfirmOk').focus(), 150);
+  }
+  document.getElementById('btnConfirmOk').addEventListener('click', async () => {
+    document.getElementById('modalConfirm').classList.remove('open');
+    if (_confirmCb) { const cb = _confirmCb; _confirmCb = null; await cb(); }
+  });
+
   function showToast(msg, erro = false) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -485,23 +510,25 @@
     } catch { showToast('Erro ao salvar!', true); carregarDados(); }
   }
 
-  async function zerarTudo() {
-    if (!confirm('Zerar TODO o estoque?')) return;
-    const res = await fetch('/api/estoque');
-    const est = await res.json();
-    for (const item of est) {
-      await fetch('/api/estoque', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${estoqueToken}` },
-        body: JSON.stringify({ modelo: item.modelo, insumo: item.insumo, quantidade: 0, estado: 'Novo' })
-      });
-    }
-    showToast('Estoque zerado!'); carregarDados();
+  function zerarTudo() {
+    confirmar('Zerar todo o estoque', 'Todos os quantitativos voltarão para zero. Esta ação não pode ser desfeita.', async () => {
+      const res = await fetch('/api/estoque');
+      const est = await res.json();
+      for (const item of est) {
+        await fetch('/api/estoque', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${estoqueToken}` },
+          body: JSON.stringify({ modelo: item.modelo, insumo: item.insumo, quantidade: 0, estado: 'Novo' })
+        });
+      }
+      showToast('Estoque zerado!'); carregarDados();
+    });
   }
 
-  async function del(id) {
-    if (!confirm('Remover esta impressora?')) return;
-    await fetch(`/api/impressoras/${id}`, { method: 'DELETE' });
-    showToast('Impressora removida'); carregarDados();
+  function del(id) {
+    confirmar('Remover impressora', 'Esta ação não pode ser desfeita.', async () => {
+      await fetch(`/api/impressoras/${id}`, { method: 'DELETE' });
+      showToast('Impressora removida'); carregarDados();
+    });
   }
 
   document.getElementById('formAdd').onsubmit = async (e) => {
@@ -589,7 +616,7 @@
     } catch(e) { showToast('Erro: ' + e.message, true); }
   }
 
-  ['modalOverlay','modalPrint','modalSenha'].forEach(id => {
+  ['modalOverlay','modalPrint','modalSenha','modalConfirm'].forEach(id => {
     document.getElementById(id).addEventListener('click', function(e) {
       if (e.target === this) {
         this.classList.remove('open');

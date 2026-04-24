@@ -489,16 +489,7 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
     db.get('SELECT * FROM impressoras WHERE id = ?', [req.params.id], (err, imp) => {
         if (err || !imp) return res.status(404).json({ erro: 'Impressora não encontrada' });
 
-        const ps =
-            '%!PS-Adobe-3.0\n%%Pages: 1\n%%EndComments\n%%Page: 1 1\n' +
-            '/Courier findfont 12 scalefont setfont\n72 750 moveto\n' +
-            conteudo.split('\n').map((linha, i) => {
-                const safe = linha.replace(/[()\\]/g, c => '\\' + c);
-                return `72 ${750 - (i * 16)} moveto (${safe}) show`;
-            }).join('\n') +
-            '\nshowpage\n%%EOF\n';
-
-        const psBuffer = Buffer.from(ps, 'utf8');
+        const psBuffer = Buffer.from(conteudo + '\n', 'utf8');
 
         function ippAttr(tag, name, value) {
             const nameBuf = Buffer.from(name, 'utf8');
@@ -520,7 +511,7 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
             ippAttr(0x45, 'printer-uri', printerUri),
             ippAttr(0x42, 'requesting-user-name', 'imageCLASS'),
             ippAttr(0x42, 'job-name', 'Impressao-Sistema'),
-            ippAttr(0x44, 'document-format', 'application/postscript'),
+            ippAttr(0x44, 'document-format', 'text/plain'),
             Buffer.from([0x03])
         ]);
 

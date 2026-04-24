@@ -70,6 +70,29 @@ const DASH_TTL  = 30_000;
 
 function invalidarCacheDash() { dashCacheAt = 0; }
 
+// ── Credenciais de admin ──────────────────────────────────────────────────────
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+let   ADMIN_SENHA = process.env.ADMIN_SENHA;
+if (!ADMIN_SENHA) {
+    ADMIN_SENHA = crypto.randomBytes(8).toString('hex');
+    console.warn('⚠️  ADMIN_SENHA não definida. Senha temporária gerada:', ADMIN_SENHA);
+}
+
+const adminTokens = new Map();
+
+function gerarTokenAdmin() {
+    const token = crypto.randomBytes(32).toString('hex');
+    adminTokens.set(token, Date.now() + 8 * 60 * 60 * 1000);
+    return token;
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, exp] of adminTokens) {
+        if (now > exp) adminTokens.delete(token);
+    }
+}, 60_000).unref();
+
 // ── Credencial de estoque ─────────────────────────────────────────────────────
 let ESTOQUE_SENHA = process.env.ESTOQUE_SENHA;
 if (!ESTOQUE_SENHA) {
@@ -289,6 +312,24 @@ app.delete('/api/estoque/:id', verificarTokenEstoque, (req, res, next) => {
         if (this.changes === 0) return res.status(404).json({ erro: 'Item não encontrado' });
         res.status(204).end();
     });
+});
+
+// ── Autenticação de admin ─────────────────────────────────────────────────────
+app.post('/api/auth/login', limiterAuth, (req, res) => {
+    const { usuario, senha } = req.body;
+    if (!usuario || !senha) return res.status(400).json({ ok: false, erro: 'Preencha usuário e senha.' });
+    if (usuario !== ADMIN_USER || senha !== ADMIN_SENHA) {
+        return setTimeout(() => res.status(401).json({ ok: false, erro: 'Usuário ou senha incorretos.' }), 800);
+    }
+    res.json({ ok: true, token: gerarTokenAdmin(), usuario: ADMIN_USER });
+});
+
+app.get('/api/auth/verify', (req, res) => {
+    const auth  = req.headers['authorization'] || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    const exp   = adminTokens.get(token);
+    if (!exp || Date.now() > exp) return res.status(401).json({ ok: false });
+    res.json({ ok: true });
 });
 
 // ── Autenticação de estoque ───────────────────────────────────────────────────

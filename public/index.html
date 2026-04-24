@@ -181,8 +181,8 @@
 <script>
   (function() {
     try {
-      const s = JSON.parse(sessionStorage.getItem('ic_session') || 'null');
-      if (!s || !s.user) window.location.replace('login.html');
+      const t = JSON.parse(sessionStorage.getItem('ic_token') || 'null');
+      if (!t || !t.token) window.location.replace('login.html');
     } catch(e) { window.location.replace('login.html'); }
   })();
 </script>
@@ -384,18 +384,23 @@
   const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
 
   // ── Sessão ────────────────────────────────────────────────────────────────────
-  (function() {
+  const _adminToken = (function() {
     try {
-      const s = JSON.parse(sessionStorage.getItem('ic_session') || 'null');
-      if (s && s.user) {
-        const users = JSON.parse(localStorage.getItem('ic_users') || '{}');
-        const info  = users[s.user];
-        document.getElementById('userLabel').textContent = info ? info.name.split(' ')[0] : s.user;
+      const t = JSON.parse(sessionStorage.getItem('ic_token') || 'null');
+      if (t && t.token) {
+        document.getElementById('userLabel').textContent = t.usuario || 'admin';
+        return t.token;
       }
     } catch(e) {}
+    window.location.replace('login.html');
+    return null;
   })();
 
-  function doLogout() { sessionStorage.removeItem('ic_session'); window.location.replace('login.html'); }
+  fetch('/api/auth/verify', { headers: { 'Authorization': 'Bearer ' + _adminToken } })
+    .then(r => { if (!r.ok) { sessionStorage.removeItem('ic_token'); window.location.replace('login.html'); } })
+    .catch(() => {});
+
+  function doLogout() { sessionStorage.removeItem('ic_token'); window.location.replace('login.html'); }
 
   // ── Navegação de seções ───────────────────────────────────────────────────────
   function setSection(id, btn) {

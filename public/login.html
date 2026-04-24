@@ -349,12 +349,6 @@
     <!-- Card -->
     <div class="card">
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab active" id="tab-login" onclick="switchTab('login')">Entrar</button>
-        <button class="tab" id="tab-register" onclick="switchTab('register')">Criar conta</button>
-      </div>
-
       <!-- ======== TELA LOGIN ======== -->
       <div id="screen-login">
         <div class="form-group">
@@ -366,42 +360,7 @@
           <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
         </div>
         <div class="msg" id="login-msg"></div>
-        <button class="btn-primary" onclick="doLogin()">Entrar no sistema →</button>
-      </div>
-
-      <!-- ======== TELA CADASTRO ======== -->
-      <div id="screen-register" style="display:none">
-        <div class="form-group">
-          <label>Nome completo</label>
-          <input type="text" id="reg-name" placeholder="João Silva" />
-        </div>
-
-        <div class="divider"><span>credenciais de acesso</span></div>
-
-        <div class="form-group">
-          <label>Usuário</label>
-          <input type="text" id="reg-user" placeholder="joao.silva" autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label>Senha</label>
-          <input type="password" id="reg-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
-        </div>
-        <div class="form-group">
-          <label>Confirmar senha</label>
-          <input type="password" id="reg-pass2" placeholder="Repita a senha" autocomplete="new-password" />
-        </div>
-        <div class="msg" id="reg-msg"></div>
-        <button class="btn-primary" onclick="doRegister()">Criar minha conta</button>
-      </div>
-
-      <!-- ======== TELA SUCESSO ======== -->
-      <div id="screen-success" class="success-screen">
-        <div class="success-icon">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <h2 id="success-title">Conta criada!</h2>
-        <p id="success-desc">Seu acesso foi cadastrado.<br>Agora você já pode entrar no sistema.</p>
-        <button class="btn-primary" onclick="switchTab('login')">Ir para o login →</button>
+        <button class="btn-primary" id="btn-entrar" onclick="doLogin()">Entrar no sistema →</button>
       </div>
 
     </div><!-- /.card -->
@@ -410,147 +369,69 @@
   </div>
 
 <script>
-  /* ─── Crypto helpers ─── */
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  /* ─── Sessão ─── */
+  function getToken() {
+    try { return JSON.parse(sessionStorage.getItem('ic_token') || 'null'); } catch { return null; }
   }
 
-  function isBtoa(hash) {
-    return hash.length !== 64;
-  }
-
-  /* ─── Utilitários de armazenamento ─── */
-  function getUsers() {
-    try { return JSON.parse(localStorage.getItem('ic_users') || '{}'); } catch { return {}; }
-  }
-  function saveUsers(u) { localStorage.setItem('ic_users', JSON.stringify(u)); }
-  function setSession(user) { sessionStorage.setItem('ic_session', JSON.stringify({ user, ts: Date.now() })); }
-  function getSession() {
-    try { return JSON.parse(sessionStorage.getItem('ic_session')); } catch { return null; }
-  }
-
-  /* ─── Se já está logado, redireciona imediatamente ─── */
-  (function checkSession() {
-    const s = getSession();
-    if (s && s.user) {
+  /* ─── Se já está logado, redireciona ─── */
+  (function() {
+    const t = getToken();
+    if (t && t.token) {
       document.getElementById('loadingOverlay').classList.add('show');
       window.location.href = 'dashboard.html';
     }
   })();
 
   /* ─── Feedback visual ─── */
-  function showMsg(id, text, type) {
-    const el = document.getElementById(id);
+  function showMsg(text, type) {
+    const el = document.getElementById('login-msg');
     el.textContent = text;
     el.className = 'msg ' + type;
-  }
-  function clearMsg(id) {
-    const el = document.getElementById(id);
-    el.textContent = '';
-    el.className = 'msg';
-  }
-
-  /* ─── Troca de aba ─── */
-  function switchTab(tab) {
-    document.getElementById('screen-login').style.display    = tab === 'login'    ? 'block' : 'none';
-    document.getElementById('screen-register').style.display = tab === 'register' ? 'block' : 'none';
-    document.getElementById('screen-success').style.display  = 'none';
-    document.getElementById('tab-login').className    = 'tab' + (tab === 'login'    ? ' active' : '');
-    document.getElementById('tab-register').className = 'tab' + (tab === 'register' ? ' active' : '');
-    clearMsg('login-msg');
-    clearMsg('reg-msg');
   }
 
   /* ─── Login ─── */
   async function doLogin() {
-    const user = document.getElementById('login-user').value.trim().toLowerCase();
-    const pass = document.getElementById('login-pass').value;
-    clearMsg('login-msg');
+    const usuario = document.getElementById('login-user').value.trim();
+    const senha   = document.getElementById('login-pass').value;
+    showMsg('', '');
 
-    if (!user || !pass) {
-      showMsg('login-msg', 'Preencha usuário e senha.', 'error'); return;
+    if (!usuario || !senha) { showMsg('Preencha usuário e senha.', 'error'); return; }
+
+    const btn = document.getElementById('btn-entrar');
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, senha })
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        showMsg(data.erro || 'Usuário ou senha incorretos.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Entrar no sistema →';
+        return;
+      }
+
+      sessionStorage.setItem('ic_token', JSON.stringify({ token: data.token, usuario: data.usuario }));
+      showMsg('✓ Acesso autorizado! Redirecionando...', 'success');
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').classList.add('show');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
+      }, 700);
+    } catch {
+      showMsg('Erro de conexão. Verifique o servidor.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Entrar no sistema →';
     }
-
-    const users = getUsers();
-
-    if (!users[user]) {
-      showMsg('login-msg', 'Usuário não encontrado. Crie uma conta primeiro.', 'error'); return;
-    }
-
-    const stored  = users[user].pass;
-    const btoaVal = btoa(unescape(encodeURIComponent(pass)));
-    const sha     = await sha256(pass);
-    const valid   = isBtoa(stored) ? stored === btoaVal : stored === sha;
-
-    if (!valid) {
-      showMsg('login-msg', 'Senha incorreta. Tente novamente.', 'error'); return;
-    }
-
-    if (isBtoa(stored)) {
-      users[user].pass = sha;
-      saveUsers(users);
-    }
-
-    showMsg('login-msg', '✓ Acesso autorizado! Redirecionando...', 'success');
-    setSession(user);
-
-    setTimeout(() => {
-      document.getElementById('loadingOverlay').classList.add('show');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
-    }, 800);
   }
 
-  /* ─── Cadastro ─── */
-  async function doRegister() {
-    const name  = document.getElementById('reg-name').value.trim();
-    const user  = document.getElementById('reg-user').value.trim().toLowerCase();
-    const pass  = document.getElementById('reg-pass').value;
-    const pass2 = document.getElementById('reg-pass2').value;
-    clearMsg('reg-msg');
-
-    if (!name || !user || !pass || !pass2) {
-      showMsg('reg-msg', 'Preencha todos os campos.', 'error'); return;
-    }
-    if (user.length < 3) {
-      showMsg('reg-msg', 'Usuário deve ter ao menos 3 caracteres.', 'error'); return;
-    }
-    if (!/^[a-z0-9._]+$/.test(user)) {
-      showMsg('reg-msg', 'Usuário: use apenas letras, números, ponto ou underscore.', 'error'); return;
-    }
-    if (pass.length < 6) {
-      showMsg('reg-msg', 'A senha deve ter ao menos 6 caracteres.', 'error'); return;
-    }
-    if (pass !== pass2) {
-      showMsg('reg-msg', 'As senhas não coincidem.', 'error'); return;
-    }
-
-    const users = getUsers();
-    if (users[user]) {
-      showMsg('reg-msg', 'Este usuário já existe. Escolha outro nome.', 'error'); return;
-    }
-
-    users[user] = {
-      name,
-      pass: await sha256(pass),
-      createdAt: new Date().toISOString()
-    };
-    saveUsers(users);
-
-    document.getElementById('screen-register').style.display = 'none';
-    document.getElementById('screen-success').style.display  = 'block';
-    document.getElementById('tab-register').className = 'tab';
-    document.getElementById('success-title').textContent = 'Tudo certo, ' + name.split(' ')[0] + '!';
-  }
-
-  /* ─── Enter nos campos ─── */
-  document.addEventListener('keydown', function(e) {
-    if (e.key !== 'Enter') return;
-    const loginVisible = document.getElementById('screen-login').style.display !== 'none';
-    const regVisible   = document.getElementById('screen-register').style.display !== 'none';
-    if (loginVisible) doLogin();
-    else if (regVisible) doRegister();
-  });
+  /* ─── Enter ─── */
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
 </body>
 </html>

@@ -5,25 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monitor de Impressoras</title>
   <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
   <style>
-    body { overflow-x: hidden; }
-
-    .statsbar { display: flex; gap: 14px; padding: 14px 28px; background: var(--card); border-bottom: 1px solid var(--bd); }
-    .pill { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 18px; flex: 1; }
+    .statsbar { display: flex; gap: 14px; padding: 0 0 20px; flex-wrap: wrap; }
+    .pill { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--bd); border-radius: 8px; padding: 10px 18px; flex: 1; min-width: 120px; }
     .pico { font-size: 20px; }
     .plbl { font-size: 10px; color: var(--mt); text-transform: uppercase; letter-spacing: 1px; }
     .pval { font-size: 26px; font-weight: 800; line-height: 1; }
     .pval.bl { color: var(--blue); } .pval.gn { color: var(--ok); } .pval.rd { color: var(--no); } .pval.wn { color: #f59e0b; }
 
-    .sbar { padding: 12px 28px; display: flex; gap: 10px; align-items: center; background: var(--card); flex-wrap: wrap; }
-    .si { background: var(--card); border: 1px solid var(--bd); color: var(--tx); padding: 9px 14px; border-radius: 8px; font-size: 13px; width: 260px; transition: border-color 0.2s; }
-    .si:focus { outline: none; border-color: var(--blue); }
-    .fb { background: var(--card); border: 1px solid var(--bd); color: var(--mt); padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
-    .fb.act { border-color: var(--blue); color: var(--blue); background: rgba(251,102,2,.08); }
+    .sbar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .si { background: var(--card); border: 1.5px solid var(--bd); color: var(--tx); padding: 9px 14px; border-radius: 8px; font-size: 13px; width: 260px; transition: border-color 0.2s; font-family: inherit; }
+    .si:focus { outline: none; border-color: var(--accent); }
+    .fb { background: var(--card); border: 1px solid var(--bd); color: var(--mt); padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+    .fb.act { border-color: var(--accent); color: var(--accent); background: rgba(251,102,2,.08); }
     .fb:hover { border-color: #555; color: var(--tx); }
     .fb:disabled { opacity: .5; cursor: not-allowed; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; padding: 24px 28px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
 
     .card { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 20px; transition: all 0.25s ease; position: relative; overflow: hidden; }
     .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--bd); transition: background 0.3s; }
@@ -46,55 +45,65 @@
     .nosnmp   { color: var(--mt); font-size: 11px; padding: 12px; text-align: center; border: 1px dashed var(--bd); border-radius: 6px; }
     .alert-low { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); border-radius: 6px; padding: 7px 12px; font-size: 11px; color: var(--no); margin-top: 12px; }
 
-    @media (max-width: 680px) {
-      .statsbar { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
-      .pill     { flex: 1 1 calc(50% - 4px); }
-      .sbar     { padding: 10px 16px; }
-      .grid     { grid-template-columns: 1fr; padding: 16px; gap: 12px; }
-      .cf       { flex-direction: column; align-items: flex-start; gap: 6px; }
-    }
-
     .cf  { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bd); }
     .lck { font-size: 11px; color: var(--mt); }
     .btr { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.25); color: var(--blue); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
     .btr:hover { background: var(--blue); color: #fff; }
+
+    @media (max-width: 900px) { .statsbar { flex-wrap: wrap; } .pill { flex: 1 1 calc(50% - 7px); } }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .cf { flex-direction: column; align-items: flex-start; gap: 6px; } }
   </style>
 </head>
 <body>
+<script src="public-common.js"></script>
+<script>initTheme();</script>
 
 <div class="loader" id="loader"><div class="spinner"></div></div>
 
-<div class="topbar">
-  <div>
-    <div class="logo"><div class="logo-dot"></div>Impressoras Sobral</div>
-    <div class="sub">Monitoramento de Rede</div>
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-dot"></div>
+    <div><strong>Impressoras Sobral</strong><span>Gerenciamento de rede</span></div>
   </div>
-  <div class="tright">
-    <div id="clock">00:00:00</div>
-    <a href="tinta.html" class="btn pr">Níveis de Tinta</a>
-    <a href="admin.html" class="btn sc">Admin</a>
+  <nav class="sb-nav">
+    <a href="dashboard.html" class="sb-item">📊 Dashboard</a>
+    <a href="tinta.html"     class="sb-item">🖨️ Níveis de Tinta</a>
+  </nav>
+  <div class="sb-footer">
+    <button id="themeBtn" class="sb-theme" onclick="toggleTheme()">🌙 Escuro</button>
+    <a href="admin.html" class="sb-logout" style="display:block;text-align:center;text-decoration:none">⚙️ Área Admin</a>
   </div>
-</div>
+</aside>
 
-<div class="statsbar">
-  <div class="pill"><div class="pico">🖨️</div><div><div class="plbl">Total</div><div class="pval bl" id="tot">0</div></div></div>
-  <div class="pill"><div class="pico">🟢</div><div><div class="plbl">Online</div><div class="pval gn" id="onl">0</div></div></div>
-  <div class="pill"><div class="pico">🔴</div><div><div class="plbl">Offline</div><div class="pval rd" id="ofl">0</div></div></div>
-  <div class="pill"><div class="pico">⚠️</div><div><div class="plbl">Tinta Baixa</div><div class="pval wn" id="low">0</div></div></div>
-</div>
+<div class="main-wrap">
+  <div class="main-topbar">
+    <span class="main-title">📊 Monitor de Impressoras</span>
+    <span id="clock" class="main-clock"></span>
+  </div>
+  <main class="main-content">
+    <div class="statsbar">
+      <div class="pill"><div class="pico">🖨️</div><div><div class="plbl">Total</div><div class="pval bl" id="tot">0</div></div></div>
+      <div class="pill"><div class="pico">🟢</div><div><div class="plbl">Online</div><div class="pval gn" id="onl">0</div></div></div>
+      <div class="pill"><div class="pico">🔴</div><div><div class="plbl">Offline</div><div class="pval rd" id="ofl">0</div></div></div>
+      <div class="pill"><div class="pico">⚠️</div><div><div class="plbl">Tinta Baixa</div><div class="pval wn" id="low">0</div></div></div>
+    </div>
 
-<div class="sbar">
-  <input class="si" id="si" placeholder="Buscar impressora, IP, setor..." oninput="renderizar()" aria-label="Buscar impressora">
-  <button class="fb act" id="b-all" onclick="setF('all')">Todas</button>
-  <button class="fb"     id="b-on"  onclick="setF('on')">Online</button>
-  <button class="fb"     id="b-off" onclick="setF('off')">Offline</button>
-  <button class="fb"     id="b-low" onclick="setF('low')">Tinta Baixa</button>
-  <button class="fb" id="btn-refresh" style="margin-left:auto" onclick="carregar()">Atualizar</button>
-</div>
+    <div class="sbar">
+      <input class="si" id="si" placeholder="Buscar impressora, IP, setor..." oninput="renderizar()" aria-label="Buscar impressora">
+      <button class="fb act" id="b-all" onclick="setF('all')">Todas</button>
+      <button class="fb"     id="b-on"  onclick="setF('on')">Online</button>
+      <button class="fb"     id="b-off" onclick="setF('off')">Offline</button>
+      <button class="fb"     id="b-low" onclick="setF('low')">Tinta Baixa</button>
+      <button class="fb" id="btn-refresh" style="margin-left:auto" onclick="carregar()">Atualizar</button>
+    </div>
 
-<div class="grid" id="grid"></div>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
 
 <script>
+  initClock(); setActiveNav();
+
   let dadosCache  = [];
   let filtroAtivo = 'all';
   let timerId     = null;
@@ -223,10 +232,6 @@
       iniciarTimer();
     }
   });
-
-  setInterval(() => {
-    document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR');
-  }, 1000);
 
   carregar();
   iniciarTimer();

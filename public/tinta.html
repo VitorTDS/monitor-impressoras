@@ -5,17 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Níveis de Tinta - Impressoras Sobral</title>
   <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
   <style>
-    .page-header { padding: 20px 28px 0; display: flex; justify-content: space-between; align-items: flex-end; }
-    .ph-title { font-size: 22px; font-weight: 800; }
-    .ph-sub   { font-size: 12px; color: var(--mt); margin-top: 4px; }
-    .lupd { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--mt); }
-    .dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s 5 forwards; }
+    .ph-sub   { font-size: 12px; color: var(--mt); margin-bottom: 16px; }
+    .lupd { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--mt); margin-bottom: 20px; }
+    .dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s 5 forwards; flex-shrink: 0; }
 
-    .alert-global { margin: 16px 28px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--no); }
+    .alert-global { margin-bottom: 16px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--no); }
     .alert-global .ico { font-size: 22px; flex-shrink: 0; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; padding: 20px 28px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
 
     .card { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; transition: border-color .2s, box-shadow .2s; }
     .card:hover { border-color: #ccc; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
@@ -58,60 +57,69 @@
     .btr   { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.2); color: var(--blue); padding: 4px 10px; border-radius: 5px; font-size: 10px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
     .btr:hover { background: var(--blue); color: #fff; }
 
-    .refresh-row { display: flex; justify-content: center; padding: 8px 28px 28px; }
-
-    @media (max-width: 640px) {
-      .page-header  { flex-direction: column; gap: 8px; padding: 14px 16px 0; }
-      .alert-global { margin: 12px 16px; }
-      .grid         { grid-template-columns: 1fr; padding: 14px 16px; gap: 12px; }
-      .refresh-row  { padding: 8px 16px 20px; }
-      .ctop         { flex-wrap: wrap; gap: 8px; }
-    }
-    .btn-refresh { background: var(--card); border: 1px solid var(--bd); color: var(--mt); padding: 12px 28px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 10px; }
-    .btn-refresh:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+    .refresh-row { display: flex; justify-content: center; padding-top: 24px; }
+    .btn-refresh { background: var(--card); border: 1px solid var(--bd); color: var(--mt); padding: 12px 28px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 10px; font-family: inherit; }
+    .btn-refresh:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
     .btn-refresh:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-atualizar { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); color: var(--tx); padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
+    .btn-atualizar:hover:not(:disabled) { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-atualizar:disabled { opacity: .5; cursor: not-allowed; }
     .spin { display: inline-block; animation: spin .8s linear infinite; }
+
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .ctop { flex-wrap: wrap; gap: 8px; } }
   </style>
 </head>
 <body>
+<script src="public-common.js"></script>
+<script>initTheme();</script>
 
 <div class="loader" id="loader"><div class="spinner"></div></div>
 
-<div class="topbar">
-  <div>
-    <div class="logo"><div class="logo-dot"></div>Impressoras Sobral</div>
-    <div class="sub">Níveis de Suprimentos</div>
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-dot"></div>
+    <div><strong>Impressoras Sobral</strong><span>Gerenciamento de rede</span></div>
   </div>
-  <div class="tright">
-    <div id="clock">00:00:00</div>
-    <button class="btn pr" id="btn-atualizar" onclick="carregar()">Atualizar Agora</button>
-    <a href="dashboard.html" class="btn sc">Monitor TV</a>
-    <a href="admin.html" class="btn sc">Admin</a>
+  <nav class="sb-nav">
+    <a href="dashboard.html" class="sb-item">📊 Dashboard</a>
+    <a href="tinta.html"     class="sb-item">🖨️ Níveis de Tinta</a>
+  </nav>
+  <div class="sb-footer">
+    <button id="themeBtn" class="sb-theme" onclick="toggleTheme()">🌙 Escuro</button>
+    <a href="admin.html" class="sb-logout" style="display:block;text-align:center;text-decoration:none">⚙️ Área Admin</a>
   </div>
-</div>
+</aside>
 
-<div class="page-header">
-  <div>
-    <div class="ph-title">Monitoramento de Tinta</div>
+<div class="main-wrap">
+  <div class="main-topbar">
+    <span class="main-title">🖨️ Níveis de Tinta</span>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button id="btn-atualizar" class="btn-atualizar" onclick="carregar()">Atualizar Agora</button>
+      <span id="clock" class="main-clock"></span>
+    </div>
+  </div>
+  <main class="main-content">
     <div class="ph-sub">Níveis consultados em tempo real via SNMP · Atualiza a cada 30s</div>
-  </div>
-  <div class="lupd"><div class="dot" aria-hidden="true"></div><span id="lupd">Aguardando...</span></div>
-</div>
+    <div class="lupd"><div class="dot" aria-hidden="true"></div><span id="lupd">Aguardando...</span></div>
 
-<div class="alert-global" id="alertbox" style="display:none" role="alert">
-  <div class="ico" aria-hidden="true">⚠️</div>
-  <div id="alertmsg"></div>
-</div>
+    <div class="alert-global" id="alertbox" style="display:none" role="alert">
+      <div class="ico" aria-hidden="true">⚠️</div>
+      <div id="alertmsg"></div>
+    </div>
 
-<div class="grid" id="grid"></div>
+    <div class="grid" id="grid"></div>
 
-<div class="refresh-row">
-  <button class="btn-refresh" id="btn-refresh" onclick="carregar()">
-    <span id="rspin"></span> Verificar todos os níveis agora
-  </button>
+    <div class="refresh-row">
+      <button class="btn-refresh" id="btn-refresh" onclick="carregar()">
+        <span id="rspin"></span> Verificar todos os níveis agora
+      </button>
+    </div>
+  </main>
 </div>
 
 <script>
+  initClock(); setActiveNav();
+
   let dadosCache = [];
   let timerId    = null;
 
@@ -237,10 +245,6 @@
       iniciarTimer();
     }
   });
-
-  setInterval(() => {
-    document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR');
-  }, 1000);
 
   carregar();
   iniciarTimer();

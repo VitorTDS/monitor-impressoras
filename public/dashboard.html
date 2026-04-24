@@ -29,13 +29,13 @@
     .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--bd); transition: background 0.3s; }
     .card.is-on::before { background: var(--ok); }
     .card.is-off::before { background: var(--no); }
-    .card:hover { border-color: #444; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .card:hover { border-color: #ccc; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.08); }
 
     .ch { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
     .pname { font-size: 17px; font-weight: 700; }
-    .pip   { font-size: 13px; color: var(--red); font-weight: 600; margin-top: 3px; }
+    .pip   { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 3px; }
     .pmod  { font-size: 11px; color: var(--mt); margin-top: 3px; }
-    .ploc  { font-size: 11px; color: #555; margin-top: 2px; }
+    .ploc  { font-size: 11px; color: var(--mt); margin-top: 2px; }
 
     .srow  { margin-bottom: 12px; }
     .smeta { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; color: var(--mt); text-transform: uppercase; letter-spacing: .5px; }
@@ -43,7 +43,7 @@
     .pct.wn { color: #f59e0b; } .pct.cr { color: var(--no); }
     .bar   { height: 10px; }
 
-    .nosnmp   { color: #333; font-size: 11px; padding: 12px; text-align: center; border: 1px dashed #222; border-radius: 6px; }
+    .nosnmp   { color: var(--mt); font-size: 11px; padding: 12px; text-align: center; border: 1px dashed var(--bd); border-radius: 6px; }
     .alert-low { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); border-radius: 6px; padding: 7px 12px; font-size: 11px; color: var(--no); margin-top: 12px; }
 
     @media (max-width: 680px) {
@@ -55,7 +55,7 @@
     }
 
     .cf  { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bd); }
-    .lck { font-size: 11px; color: #444; }
+    .lck { font-size: 11px; color: var(--mt); }
     .btr { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.25); color: var(--blue); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
     .btr:hover { background: var(--blue); color: #fff; }
   </style>
@@ -66,7 +66,7 @@
 
 <div class="topbar">
   <div>
-    <div class="logo">Impressoras Sobral</div>
+    <div class="logo"><div class="logo-dot"></div>Impressoras Sobral</div>
     <div class="sub">Monitoramento de Rede</div>
   </div>
   <div class="tright">
@@ -203,7 +203,7 @@
             <span class="lck">Verificado: ${agora}</span>
             ${p.online
               ? `<a class="btr" href="http://${esc(p.ip)}" target="_blank" rel="noopener">Interface Remota</a>`
-              : '<span style="font-size:11px;color:#333">Sem conexão</span>'}
+              : '<span style="font-size:11px;color:var(--mt)">Sem conexão</span>'}
           </div>
         </div>`;
     }).join('');

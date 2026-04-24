@@ -481,7 +481,42 @@ app.post('/api/auth/estoque', limiterAuth, (req, res) => {
     setTimeout(() => res.status(401).json({ ok: false }), 800);
 });
 
-// ── Impressão via IPP (porta 631) com fallback RAW 9100 ──────────────────────
+// ── Gerador de PDF mínimo para impressão ─────────────────────────────────────
+function gerarPDF(texto) {
+    const esc = s => s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const linhas = texto.split('\n');
+
+    const ops = ['BT', '/F1 10 Tf', '50 800 Td', '14 TL',
+        ...linhas.map(l => `(${esc(l)}) Tj T*`), 'ET'].join('\n');
+    const streamLen = Buffer.byteLength(ops, 'latin1');
+
+    const s1 = '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
+    const s2 = '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n';
+    const s3 = '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n';
+    const s4 = `4 0 obj\n<< /Length ${streamLen} >>\nstream\n${ops}\nendstream\nendobj\n`;
+    const s5 = '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n';
+    const hdr = '%PDF-1.4\n';
+
+    const blen = s => Buffer.byteLength(s, 'latin1');
+    const off1 = blen(hdr);
+    const off2 = off1 + blen(s1);
+    const off3 = off2 + blen(s2);
+    const off4 = off3 + blen(s3);
+    const off5 = off4 + blen(s4);
+    const xrefPos = off5 + blen(s5);
+    const p = n => String(n).padStart(10, '0');
+
+    const xref =
+        'xref\n0 6\n' +
+        `0000000000 65535 f \r\n` +
+        `${p(off1)} 00000 n \r\n${p(off2)} 00000 n \r\n` +
+        `${p(off3)} 00000 n \r\n${p(off4)} 00000 n \r\n${p(off5)} 00000 n \r\n`;
+    const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF\n`;
+
+    return Buffer.concat([hdr, s1, s2, s3, s4, s5, xref, trailer].map(s => Buffer.from(s, 'latin1')));
+}
+
+// ── Impressão via IPP + PDF (Canon MF / AirPrint) ────────────────────────────
 app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
     const { conteudo } = req.body;
     if (!conteudo) return res.status(400).json({ erro: 'Conteúdo não informado' });
@@ -489,76 +524,52 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
     db.get('SELECT * FROM impressoras WHERE id = ?', [req.params.id], (err, imp) => {
         if (err || !imp) return res.status(404).json({ erro: 'Impressora não encontrada' });
 
-        const psBuffer = Buffer.from(conteudo + '\n', 'utf8');
+        const docBuf = gerarPDF(conteudo);
 
         function ippAttr(tag, name, value) {
-            const nameBuf = Buffer.from(name, 'utf8');
-            const valBuf  = Buffer.from(value, 'utf8');
-            const b = Buffer.alloc(5 + nameBuf.length + valBuf.length);
-            b.writeUInt8(tag, 0);
-            b.writeUInt16BE(nameBuf.length, 1);
-            nameBuf.copy(b, 3);
-            b.writeUInt16BE(valBuf.length, 3 + nameBuf.length);
-            valBuf.copy(b, 5 + nameBuf.length);
+            const nb = Buffer.from(name, 'utf8'), vb = Buffer.from(value, 'utf8');
+            const b  = Buffer.alloc(5 + nb.length + vb.length);
+            b.writeUInt8(tag, 0); b.writeUInt16BE(nb.length, 1); nb.copy(b, 3);
+            b.writeUInt16BE(vb.length, 3 + nb.length); vb.copy(b, 5 + nb.length);
             return b;
         }
 
         const printerUri = `ipp://${imp.ip}/ipp/print`;
         const attrs = Buffer.concat([
             Buffer.from([0x01]),
-            ippAttr(0x47, 'attributes-charset', 'utf-8'),
-            ippAttr(0x48, 'attributes-natural-language', 'pt-br'),
-            ippAttr(0x45, 'printer-uri', printerUri),
-            ippAttr(0x42, 'requesting-user-name', 'imageCLASS'),
-            ippAttr(0x42, 'job-name', 'Impressao-Sistema'),
-            ippAttr(0x44, 'document-format', 'application/octet-stream'),
+            ippAttr(0x47, 'attributes-charset',          'utf-8'),
+            ippAttr(0x48, 'attributes-natural-language',  'pt-br'),
+            ippAttr(0x45, 'printer-uri',                  printerUri),
+            ippAttr(0x42, 'requesting-user-name',         'Sistema'),
+            ippAttr(0x42, 'job-name',                     'Impressao'),
+            ippAttr(0x44, 'document-format',              'application/pdf'),
             Buffer.from([0x03])
         ]);
 
-        const header = Buffer.alloc(8);
-        header.writeUInt8(0x01, 0);
-        header.writeUInt8(0x01, 1);
-        header.writeUInt16BE(0x0002, 2);
-        header.writeInt32BE(1, 4);
+        const ippHdr = Buffer.alloc(8);
+        ippHdr.writeUInt8(0x01, 0); ippHdr.writeUInt8(0x01, 1);
+        ippHdr.writeUInt16BE(0x0002, 2); ippHdr.writeInt32BE(1, 4);
 
-        const ippBody = Buffer.concat([header, attrs, psBuffer]);
-
-        function enviarRaw() {
-            const socket = new net.Socket();
-            let respondeu = false;
-            // ESC E (reset) + conteúdo linha a linha + form feed + ESC E (fim de job)
-            const pcl = '\x1BE' + conteudo.split('\n').join('\r\n') + '\r\n\f\x1BE';
-            const buf  = Buffer.from(pcl, 'latin1');
-            socket.setTimeout(5000);
-            socket.connect(9100, imp.ip, () => {
-                socket.write(buf, () => {
-                    socket.end();
-                    if (!respondeu) { respondeu = true; res.json({ sucesso: true, aviso: 'Enviado via RAW' }); }
-                });
-            });
-            socket.on('timeout', () => { socket.destroy(); if (!respondeu) { respondeu = true; res.status(504).json({ erro: 'Timeout' }); } });
-            socket.on('error',   () => { if (!respondeu) { respondeu = true; res.status(500).json({ erro: 'Impressora não respondeu em IPP nem RAW.' }); } });
-        }
+        const ippBody = Buffer.concat([ippHdr, attrs, docBuf]);
 
         const reqHttp = http.request({
             hostname: imp.ip, port: 631, path: '/ipp/print', method: 'POST',
             headers: { 'Content-Type': 'application/ipp', 'Content-Length': ippBody.length }
-        }, (ippRes) => {
-            const data = [];
-            ippRes.on('data', chunk => data.push(chunk));
+        }, ippRes => {
+            const chunks = [];
+            ippRes.on('data', c => chunks.push(c));
             ippRes.on('end', () => {
-                const buf = Buffer.concat(data);
+                const buf = Buffer.concat(chunks);
                 if (buf.length >= 4) {
-                    const statusCode = buf.readUInt16BE(2);
-                    if (statusCode === 0x040a) return enviarRaw();
-                    if (statusCode >= 0x0400) return res.status(500).json({ erro: `Impressora recusou: código IPP ${statusCode.toString(16)}` });
+                    const sc = buf.readUInt16BE(2);
+                    if (sc >= 0x0400) return res.status(500).json({ erro: `Impressora recusou: código IPP ${sc.toString(16)}` });
                 }
                 res.json({ sucesso: true });
             });
         });
 
-        reqHttp.on('error', () => enviarRaw());
-        reqHttp.setTimeout(8000, () => reqHttp.destroy());
+        reqHttp.on('error', err2 => res.status(500).json({ erro: 'Sem conexão com a impressora: ' + err2.message }));
+        reqHttp.setTimeout(10000, () => reqHttp.destroy());
         reqHttp.write(ippBody);
         reqHttp.end();
     });

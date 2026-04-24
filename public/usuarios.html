@@ -8,7 +8,15 @@
   <link rel="stylesheet" href="admin.css">
   <style>
     .section-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
-    .form-card { background: var(--card); border-radius: 14px; padding: 24px; max-width: 460px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .form-card { background: var(--card); border-radius: 14px; padding: 24px; max-width: 560px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    @media (max-width: 640px) {
+      .form-card { padding: 18px; }
+      .table-wrap table { font-size: 12px; }
+      .table-wrap th:nth-child(3),
+      .table-wrap td:nth-child(3) { display: none; }
+      .table-wrap th:nth-child(4),
+      .table-wrap td:nth-child(4) { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -68,11 +76,11 @@
   <div class="section-title">➕ Novo Usuário</div>
   <div class="form-card">
     <div class="fgrid">
-      <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva"></div>
-      <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva"></div>
+      <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva" autocomplete="off"></div>
+      <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva" autocomplete="off"></div>
     </div>
     <label>Senha inicial</label>
-    <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres">
+    <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
     <div id="uMsg" style="font-size:12px;margin:8px 0;min-height:18px"></div>
     <button class="btn-add" onclick="criarUsuario()">+ Criar Usuário</button>
   </div>

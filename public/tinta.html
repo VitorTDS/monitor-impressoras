@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Níveis de Tinta - imageCLASS</title>
+  <title>Níveis de Tinta - Impressoras Sobral</title>
   <link rel="stylesheet" href="shared.css">
   <style>
     .page-header { padding: 20px 28px 0; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -79,7 +79,7 @@
 
 <div class="topbar">
   <div>
-    <div class="logo">imageCLASS</div>
+    <div class="logo">Impressoras Sobral</div>
     <div class="sub">Níveis de Suprimentos</div>
   </div>
   <div class="tright">
@@ -195,7 +195,7 @@
             <div>
               <div class="pname">${esc(p.nome)}</div>
               <div class="pip">${esc(p.ip)}</div>
-              <div class="pmod">${esc(p.modelo || 'Canon imageCLASS')}</div>
+              <div class="pmod">${esc(p.modelo || 'Canon')}</div>
               ${p.localizacao ? `<div class="ploc">📍 ${esc(p.localizacao)}</div>` : ''}
             </div>
             <div class="sbadge ${p.online ? 'on' : 'off'}" aria-label="${p.online ? 'Online' : 'Offline'}">${p.online ? '● ONLINE' : '● OFFLINE'}</div>

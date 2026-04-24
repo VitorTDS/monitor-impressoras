@@ -66,7 +66,7 @@
 
 <div class="topbar">
   <div>
-    <div class="logo">imageCLASS</div>
+    <div class="logo">Impressoras Sobral</div>
     <div class="sub">Monitoramento de Rede</div>
   </div>
   <div class="tright">
@@ -183,7 +183,7 @@
             <div>
               <div class="pname">${esc(p.nome)}</div>
               <div class="pip">${esc(p.ip)}</div>
-              <div class="pmod">${esc(p.modelo || 'Canon imageCLASS')}</div>
+              <div class="pmod">${esc(p.modelo || 'Canon')}</div>
               ${p.localizacao ? `<div class="ploc">📍 ${esc(p.localizacao)}</div>` : ''}
             </div>
             <div class="sbadge ${p.online ? 'on' : 'off'}" aria-label="${p.online ? 'Conectado' : 'Sem sinal'}">${p.online ? '● CONECTADO' : '● SEM SINAL'}</div>

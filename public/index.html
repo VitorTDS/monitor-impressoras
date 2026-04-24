@@ -109,6 +109,20 @@
     .user-bar strong { color: var(--tx); font-size: 12px; }
     .btn-logout { background: none; border: none; color: var(--mt); font-size: 11px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; font-family: inherit; }
     .btn-logout:hover { color: var(--no); }
+
+    @media (max-width: 900px) {
+      body  { flex-direction: column; height: auto; min-height: 100vh; }
+      aside { width: 100%; border-right: none; border-bottom: 1px solid var(--bd); }
+      main  { overflow-y: visible; }
+    }
+    @media (max-width: 640px) {
+      aside { padding: 16px; }
+      main  { padding: 16px; }
+      .stock-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+      .modal-actions { flex-direction: column; }
+      .btn-save, .btn-cancel { width: 100%; }
+    }
   </style>
 </head>
 <body>

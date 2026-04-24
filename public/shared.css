@@ -77,6 +77,14 @@ body {
 @keyframes flash  { 0%,100%{opacity:0} 50%{opacity:1} }
 @keyframes pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
 
+/* ── Responsividade ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .topbar { padding: 10px 16px; }
+  #clock  { display: none; }
+  .tright { gap: 8px; }
+  .btn    { padding: 6px 10px; font-size: 11px; }
+}
+
 /* ── Acessibilidade: respeitar preferência de movimento reduzido ─────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

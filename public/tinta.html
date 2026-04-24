@@ -59,6 +59,14 @@
     .btr:hover { background: var(--blue); color: #fff; }
 
     .refresh-row { display: flex; justify-content: center; padding: 8px 28px 28px; }
+
+    @media (max-width: 640px) {
+      .page-header  { flex-direction: column; gap: 8px; padding: 14px 16px 0; }
+      .alert-global { margin: 12px 16px; }
+      .grid         { grid-template-columns: 1fr; padding: 14px 16px; gap: 12px; }
+      .refresh-row  { padding: 8px 16px 20px; }
+      .ctop         { flex-wrap: wrap; gap: 8px; }
+    }
     .btn-refresh { background: var(--card); border: 1px solid var(--bd); color: var(--mt); padding: 12px 28px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 10px; }
     .btn-refresh:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
     .btn-refresh:disabled { opacity: .5; cursor: not-allowed; }

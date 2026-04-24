@@ -46,6 +46,14 @@
     .nosnmp   { color: #333; font-size: 11px; padding: 12px; text-align: center; border: 1px dashed #222; border-radius: 6px; }
     .alert-low { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); border-radius: 6px; padding: 7px 12px; font-size: 11px; color: var(--no); margin-top: 12px; }
 
+    @media (max-width: 680px) {
+      .statsbar { flex-wrap: wrap; padding: 10px 16px; gap: 8px; }
+      .pill     { flex: 1 1 calc(50% - 4px); }
+      .sbar     { padding: 10px 16px; }
+      .grid     { grid-template-columns: 1fr; padding: 16px; gap: 12px; }
+      .cf       { flex-direction: column; align-items: flex-start; gap: 6px; }
+    }
+
     .cf  { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bd); }
     .lck { font-size: 11px; color: #444; }
     .btr { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.25); color: var(--blue); padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }

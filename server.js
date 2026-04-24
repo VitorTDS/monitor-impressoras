@@ -221,7 +221,7 @@ app.use(cors({
 
 const limiterGlobal = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 600,
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -418,14 +418,14 @@ app.get('/api/auth/verify', (req, res) => {
 });
 
 // ── Gestão de usuários ────────────────────────────────────────────────────────
-app.get('/api/usuarios', verificarTokenAdmin, (req, res) => {
+app.get('/api/usuarios', (req, res) => {
     db.all('SELECT id, nome, usuario, ativo, criado_em FROM usuarios ORDER BY criado_em', [], (err, rows) => {
         if (err) return res.status(500).json({ erro: 'Erro ao listar usuários.' });
         res.json(rows);
     });
 });
 
-app.post('/api/usuarios', verificarTokenAdmin, async (req, res) => {
+app.post('/api/usuarios', async (req, res) => {
     const { nome, usuario, senha } = req.body;
     if (!nome || !usuario || !senha) return res.status(400).json({ erro: 'Nome, usuário e senha são obrigatórios.' });
     if (senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres.' });
@@ -442,7 +442,7 @@ app.post('/api/usuarios', verificarTokenAdmin, async (req, res) => {
     } catch { res.status(500).json({ erro: 'Erro interno.' }); }
 });
 
-app.put('/api/usuarios/:id', verificarTokenAdmin, async (req, res) => {
+app.put('/api/usuarios/:id', async (req, res) => {
     const { nome, senha, ativo } = req.body;
     const fields = [];
     const vals   = [];
@@ -461,7 +461,7 @@ app.put('/api/usuarios/:id', verificarTokenAdmin, async (req, res) => {
     });
 });
 
-app.delete('/api/usuarios/:id', verificarTokenAdmin, (req, res) => {
+app.delete('/api/usuarios/:id', (req, res) => {
     db.get('SELECT COUNT(*) AS total FROM usuarios WHERE ativo = 1', [], (err, row) => {
         if (err) return res.status(500).json({ erro: 'Erro interno.' });
         if (row.total <= 1) return res.status(400).json({ erro: 'Não é possível remover o único usuário ativo.' });

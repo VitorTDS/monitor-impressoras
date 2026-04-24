@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impressoras Sobral | Dashboard</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+    .stat  { background: var(--card); border-radius: 12px; padding: 20px; border-left: 4px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,.06); display: flex; align-items: center; gap: 14px; }
+    .stat-icon { font-size: 24px; }
+    .stat-lbl  { font-size: 10px; color: var(--mt); text-transform: uppercase; letter-spacing: 1px; }
+    .stat-val  { font-size: 30px; font-weight: 800; line-height: 1; }
+    .stat-val.or { color: var(--accent); } .stat-val.gn { color: var(--ok); }
+    .stat-val.rd { color: var(--no); }     .stat-val.wn { color: #f59e0b; }
+    .card { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 20px; }
+    .card-head { padding: 14px 20px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
+    .card-head h4 { font-size: 14px; font-weight: 800; }
+    .card-head a  { font-size: 11px; color: var(--accent); font-weight: 600; text-decoration: none; }
+    .alert-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #f5f5f5; gap: 12px; }
+    .alert-row:last-child { border-bottom: none; }
+    .alert-info strong { font-size: 13px; display: block; }
+    .alert-info span   { font-size: 11px; color: var(--mt); margin-top: 2px; display: block; }
+    .alert-ok  { padding: 24px; text-align: center; color: var(--ok); font-size: 13px; }
+    .dev-row   { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #f5f5f5; }
+    .dev-row:last-child { border-bottom: none; }
+    .dev-info strong { font-size: 13px; display: block; }
+    .dev-info span   { font-size: 11px; color: var(--mt); margin-top: 2px; display: block; }
+    @media (max-width: 900px) { .stats { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 640px) { .stats { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+<script src="admin-auth.js"></script>
+<script>requireAuth();</script>
+
+<header class="topbar-admin">
+  <div class="topbar-left">
+    <div class="tb-logo"><div class="tb-logo-dot"></div>Impressoras Sobral</div>
+    <nav class="nav-links">
+      <a href="admin.html"        class="nav-item">📊 Dashboard</a>
+      <a href="dispositivos.html" class="nav-item">🖨️ Dispositivos</a>
+      <a href="cadastrar.html"    class="nav-item">➕ Cadastrar</a>
+      <a href="estoque.html"      class="nav-item">📦 Estoque</a>
+      <a href="usuarios.html"     class="nav-item">👥 Usuários</a>
+    </nav>
+  </div>
+  <div class="topbar-right">
+    <span id="clock"></span>
+    <div class="user-chip">
+      <div class="user-avatar">👤</div>
+      <span id="userLabel" style="color:#fff;font-size:12px;font-weight:600">—</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+</header>
+
+<main style="padding:28px;flex:1">
+  <div class="stats">
+    <div class="stat" style="border-left-color:var(--accent)">
+      <div class="stat-icon">🖨️</div>
+      <div><div class="stat-lbl">Total</div><div class="stat-val or" id="stat-total">—</div></div>
+    </div>
+    <div class="stat" style="border-left-color:var(--ok)">
+      <div class="stat-icon">🟢</div>
+      <div><div class="stat-lbl">Online</div><div class="stat-val gn" id="stat-online">—</div></div>
+    </div>
+    <div class="stat" style="border-left-color:var(--no)">
+      <div class="stat-icon">🔴</div>
+      <div><div class="stat-lbl">Offline</div><div class="stat-val rd" id="stat-offline">—</div></div>
+    </div>
+    <div class="stat" style="border-left-color:#f59e0b">
+      <div class="stat-icon">⚠️</div>
+      <div><div class="stat-lbl">Tinta Baixa</div><div class="stat-val wn" id="stat-baixa">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h4>⚠️ Alertas</h4></div>
+    <div id="alertas-body"><div style="padding:24px;text-align:center;color:var(--mt);font-size:13px">Carregando...</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h4>🖨️ Impressoras Recentes</h4>
+      <a href="dispositivos.html">Ver todas →</a>
+    </div>
+    <div id="recentes-body"><div style="padding:24px;text-align:center;color:var(--mt);font-size:13px">Carregando...</div></div>
+  </div>
+</main>
+
+<script>
+  initUserLabel(); initClock(); setActiveNav();
+
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
+  const tBaixa = p => (p.suprimentos || []).some(s => s.percentual <= 15);
+
+  async function carregar() {
+    try {
+      const [resDash, resImps] = await Promise.all([
+        fetch('/api/dashboard'),
+        fetch('/api/impressoras')
+      ]);
+      const dash = await resDash.json();
+      const imps = await resImps.json();
+
+      document.getElementById('stat-total').textContent   = dash.length;
+      document.getElementById('stat-online').textContent  = dash.filter(p => p.online).length;
+      document.getElementById('stat-offline').textContent = dash.filter(p => !p.online).length;
+      document.getElementById('stat-baixa').textContent   = dash.filter(p => p.online && tBaixa(p)).length;
+
+      const alertas   = dash.filter(p => !p.online || (p.online && tBaixa(p)));
+      const alertasEl = document.getElementById('alertas-body');
+      if (!alertas.length) {
+        alertasEl.innerHTML = '<div class="alert-ok">✓ Tudo funcionando normalmente</div>';
+      } else {
+        alertasEl.innerHTML = alertas.map(p => {
+          const motivos = [];
+          if (!p.online) motivos.push('Sem sinal');
+          if (p.online && tBaixa(p)) {
+            const cores = (p.suprimentos||[]).filter(s=>s.percentual<=15).map(s=>s.nome+' '+s.percentual+'%').join(', ');
+            motivos.push('Tinta crítica: ' + cores);
+          }
+          return `<div class="alert-row">
+            <div class="alert-info">
+              <strong>${esc(p.nome || p.modelo)}</strong>
+              <span>${esc(p.ip)}${p.localizacao ? ' · '+esc(p.localizacao) : ''}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;color:var(--mt)">${esc(motivos.join(' / '))}</span>
+              <span class="sbadge ${p.online?'on':'off'}">${p.online?'● ONLINE':'● OFFLINE'}</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+
+      const recentes   = [...imps].sort((a,b) => b.id - a.id).slice(0, 5);
+      const recentesEl = document.getElementById('recentes-body');
+      if (!recentes.length) {
+        recentesEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--mt);font-size:13px">Nenhuma impressora cadastrada.</div>';
+      } else {
+        recentesEl.innerHTML = recentes.map(p => `
+          <div class="dev-row">
+            <div class="dev-info">
+              <strong>${esc(p.modelo || p.nome)}</strong>
+              <span>${esc(p.ip)}${p.localizacao ? ' · '+esc(p.localizacao) : ''}</span>
+            </div>
+            <span style="font-size:11px;color:var(--mt)">${esc(p.fabricante||'')}</span>
+          </div>`).join('');
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  carregar();
+</script>
+</body>
+</html>

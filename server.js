@@ -535,43 +535,64 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
         }
 
         const printerUri = `ipp://${imp.ip}/ipp/print`;
-        const attrs = Buffer.concat([
-            Buffer.from([0x01]),
-            ippAttr(0x47, 'attributes-charset',          'utf-8'),
-            ippAttr(0x48, 'attributes-natural-language',  'pt-br'),
-            ippAttr(0x45, 'printer-uri',                  printerUri),
-            ippAttr(0x42, 'requesting-user-name',         'Sistema'),
-            ippAttr(0x42, 'job-name',                     'Impressao'),
-            ippAttr(0x44, 'document-format',              'application/pdf'),
-            Buffer.from([0x03])
-        ]);
 
-        const ippHdr = Buffer.alloc(8);
-        ippHdr.writeUInt8(0x01, 0); ippHdr.writeUInt8(0x01, 1);
-        ippHdr.writeUInt16BE(0x0002, 2); ippHdr.writeInt32BE(1, 4);
+        function enviarIPP(docFormat, docBuffer, onSuccess, onFail) {
+            const a = Buffer.concat([
+                Buffer.from([0x01]),
+                ippAttr(0x47, 'attributes-charset',         'utf-8'),
+                ippAttr(0x48, 'attributes-natural-language', 'pt-br'),
+                ippAttr(0x45, 'printer-uri',                 printerUri),
+                ippAttr(0x42, 'requesting-user-name',        'Sistema'),
+                ippAttr(0x42, 'job-name',                    'Impressao'),
+                ippAttr(0x44, 'document-format',             docFormat),
+                Buffer.from([0x03])
+            ]);
+            const h = Buffer.alloc(8);
+            h.writeUInt8(0x01,0); h.writeUInt8(0x01,1);
+            h.writeUInt16BE(0x0002,2); h.writeInt32BE(1,4);
+            const body = Buffer.concat([h, a, docBuffer]);
 
-        const ippBody = Buffer.concat([ippHdr, attrs, docBuf]);
-
-        const reqHttp = http.request({
-            hostname: imp.ip, port: 631, path: '/ipp/print', method: 'POST',
-            headers: { 'Content-Type': 'application/ipp', 'Content-Length': ippBody.length }
-        }, ippRes => {
-            const chunks = [];
-            ippRes.on('data', c => chunks.push(c));
-            ippRes.on('end', () => {
-                const buf = Buffer.concat(chunks);
-                if (buf.length >= 4) {
-                    const sc = buf.readUInt16BE(2);
-                    if (sc >= 0x0400) return res.status(500).json({ erro: `Impressora recusou: código IPP ${sc.toString(16)}` });
-                }
-                res.json({ sucesso: true });
+            const r = http.request({
+                hostname: imp.ip, port: 631, path: '/ipp/print', method: 'POST',
+                headers: { 'Content-Type': 'application/ipp', 'Content-Length': body.length }
+            }, ippRes => {
+                const chunks = [];
+                ippRes.on('data', c => chunks.push(c));
+                ippRes.on('end', () => {
+                    const buf = Buffer.concat(chunks);
+                    const sc  = buf.length >= 4 ? buf.readUInt16BE(2) : 0;
+                    if (sc >= 0x0400) return onFail(sc);
+                    onSuccess();
+                });
             });
-        });
+            r.on('error', () => onFail(null));
+            r.setTimeout(10000, () => r.destroy());
+            r.write(body); r.end();
+        }
 
-        reqHttp.on('error', err2 => res.status(500).json({ erro: 'Sem conexão com a impressora: ' + err2.message }));
-        reqHttp.setTimeout(10000, () => reqHttp.destroy());
-        reqHttp.write(ippBody);
-        reqHttp.end();
+        function enviarRaw(onSuccess, onFail) {
+            const socket = new net.Socket();
+            const buf = Buffer.from(conteudo.split('\n').join('\r\n') + '\r\n\f', 'utf8');
+            socket.setTimeout(5000);
+            socket.connect(9100, imp.ip, () => {
+                socket.write(buf, () => { socket.end(); onSuccess('RAW'); });
+            });
+            socket.on('timeout', () => { socket.destroy(); onFail('Timeout na porta 9100'); });
+            socket.on('error',   () => onFail('Impressora não respondeu em IPP nem RAW'));
+        }
+
+        // Cascata: PDF → octet-stream → RAW
+        const textBuf = Buffer.from(conteudo + '\n', 'utf8');
+        enviarIPP('application/pdf', docBuf,
+            () => res.json({ sucesso: true }),
+            sc1 => enviarIPP('application/octet-stream', textBuf,
+                () => res.json({ sucesso: true }),
+                sc2 => enviarRaw(
+                    via  => res.json({ sucesso: true, aviso: `Enviado via ${via}` }),
+                    msg  => res.status(500).json({ erro: msg || `IPP ${sc1 ? sc1.toString(16) : sc2 ? sc2.toString(16) : '?'}` })
+                )
+            )
+        );
     });
 });
 

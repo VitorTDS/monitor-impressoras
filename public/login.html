@@ -169,7 +169,7 @@
     const t = getToken();
     if (t && t.token) {
       document.getElementById('loadingOverlay').classList.add('show');
-      window.location.href = 'dashboard.html';
+      window.location.href = 'admin.html';
     }
   })();
 
@@ -211,7 +211,7 @@
       showMsg('✓ Acesso autorizado! Redirecionando...', 'success');
       setTimeout(() => {
         document.getElementById('loadingOverlay').classList.add('show');
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 400);
+        setTimeout(() => { window.location.href = 'admin.html'; }, 400);
       }, 700);
     } catch {
       showMsg('Erro de conexão. Verifique o servidor.', 'error');

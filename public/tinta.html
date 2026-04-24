@@ -86,7 +86,7 @@
     <div id="clock">00:00:00</div>
     <button class="btn pr" id="btn-atualizar" onclick="carregar()">Atualizar Agora</button>
     <a href="dashboard.html" class="btn sc">Monitor TV</a>
-    <a href="index.html"     class="btn sc">Admin</a>
+    <a href="admin.html" class="btn sc">Admin</a>
   </div>
 </div>
 
@@ -182,7 +182,7 @@
     }
 
     if (!dadosCache.length) {
-      g.innerHTML = '<div class="empty">Nenhuma impressora cadastrada. <a href="index.html" style="color:var(--blue)">Acesse o Admin</a> para adicionar.</div>';
+      g.innerHTML = '<div class="empty">Nenhuma impressora cadastrada. <a href="admin.html" style="color:var(--blue)">Acesse o Admin</a> para adicionar.</div>';
       return;
     }
 

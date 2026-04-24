@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impressoras Sobral | Cadastrar</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    .form-card { background: var(--card); border-radius: 14px; overflow: hidden; max-width: 600px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .form-card-head { background: var(--accent); padding: 20px 24px; }
+    .form-card-head h2 { color: #fff; font-size: 16px; font-weight: 800; }
+    .form-card-head p  { color: rgba(255,255,255,0.8); font-size: 12px; margin-top: 4px; }
+    .form-card-body { padding: 24px; }
+    .form-msg { font-size: 13px; min-height: 18px; margin-bottom: 10px; }
+    .form-msg.ok  { color: var(--ok); }
+    .form-msg.err { color: var(--no); }
+    .back-link { display: block; margin-top: 16px; font-size: 12px; color: var(--mt); text-decoration: none; transition: color .2s; }
+    .back-link:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+<script src="admin-auth.js"></script>
+<script>requireAuth();</script>
+
+<header class="topbar-admin">
+  <div class="topbar-left">
+    <div class="tb-logo"><div class="tb-logo-dot"></div>Impressoras Sobral</div>
+    <nav class="nav-links">
+      <a href="admin.html"        class="nav-item">📊 Dashboard</a>
+      <a href="dispositivos.html" class="nav-item">🖨️ Dispositivos</a>
+      <a href="cadastrar.html"    class="nav-item">➕ Cadastrar</a>
+      <a href="estoque.html"      class="nav-item">📦 Estoque</a>
+      <a href="usuarios.html"     class="nav-item">👥 Usuários</a>
+    </nav>
+  </div>
+  <div class="topbar-right">
+    <span id="clock"></span>
+    <div class="user-chip">
+      <div class="user-avatar">👤</div>
+      <span id="userLabel" style="color:#fff;font-size:12px;font-weight:600">—</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+</header>
+
+<main style="padding:28px;flex:1">
+  <div class="form-card">
+    <div class="form-card-head">
+      <h2>➕ Nova Impressora</h2>
+      <p>Preencha os dados do equipamento para cadastrá-lo no sistema</p>
+    </div>
+    <div class="form-card-body">
+      <form id="formAdd">
+        <div class="fgrid">
+          <div>
+            <label>Fabricante</label>
+            <select name="fabricante"><option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option></select>
+          </div>
+          <div>
+            <label>Material do Suprimento</label>
+            <select name="material"><option value="Tinta">🖋️ Tinta</option><option value="Toner">⬛ Toner</option></select>
+          </div>
+        </div>
+        <label>Modelo / Setor</label>
+        <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
+        <label>IP / Endereço</label>
+        <input type="text" name="ip" placeholder="192.168.1.50">
+        <div class="fgrid">
+          <div>
+            <label>Localização</label>
+            <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
+          </div>
+          <div>
+            <label>Comunidade SNMP</label>
+            <input type="text" name="comunidade" placeholder="public" value="public">
+          </div>
+        </div>
+        <label>Tipo de Suprimento</label>
+        <select name="tipo">
+          <option value="Colorido">Colorido (CMYK)</option>
+          <option value="Mono">Apenas Preto</option>
+          <option value="Manutencao">Caixa Manutenção</option>
+        </select>
+        <div class="form-msg" id="formMsg"></div>
+        <button type="submit" class="btn-add">+ Registrar Equipamento</button>
+      </form>
+      <a href="dispositivos.html" class="back-link">← Ver todas as impressoras</a>
+    </div>
+  </div>
+</main>
+
+<script>
+  initUserLabel(); initClock(); setActiveNav();
+
+  function showMsg(text, type) {
+    const el = document.getElementById('formMsg');
+    el.textContent = text; el.className = 'form-msg ' + type;
+  }
+
+  document.getElementById('formAdd').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = Object.fromEntries(new FormData(form));
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    const modeloEl = form.querySelector('[name="modelo"]');
+    if (!data.modelo || !data.modelo.trim()) {
+      modeloEl.classList.add('is-invalid'); modeloEl.focus();
+      showMsg('O campo Modelo / Setor é obrigatório.', 'err'); return;
+    }
+    const btn = form.querySelector('.btn-add');
+    btn.disabled = true; btn.textContent = 'Registrando...'; showMsg('', '');
+    try {
+      const res = await fetch('/api/impressoras', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) throw new Error();
+      form.reset();
+      form.querySelector('[name="comunidade"]').value = 'public';
+      showMsg('✓ Impressora cadastrada com sucesso!', 'ok');
+      setTimeout(() => showMsg('', ''), 4000);
+    } catch { showMsg('Erro ao cadastrar impressora. Tente novamente.', 'err'); }
+    finally { btn.disabled = false; btn.textContent = '+ Registrar Equipamento'; }
+  });
+
+  document.querySelectorAll('#formAdd input, #formAdd select').forEach(el => {
+    el.addEventListener('input',  function() { this.classList.remove('is-invalid'); });
+    el.addEventListener('change', function() { this.classList.remove('is-invalid'); });
+  });
+</script>
+</body>
+</html>

@@ -299,6 +299,13 @@ app.get('/api/dashboard', (req, res, next) => {
     });
 });
 
+app.get('/api/impressoras', (req, res, next) => {
+    db.all('SELECT id, nome AS fabricante, ip, modelo, localizacao, comunidade, tipo, material FROM impressoras ORDER BY id ASC', [], (err, rows) => {
+        if (err) return next(err);
+        res.json(rows);
+    });
+});
+
 app.post('/api/impressoras', (req, res, next) => {
     const erros = validarImpressora(req.body, true);
     if (erros.length) return res.status(400).json({ erro: erros.join('; ') });

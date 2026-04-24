@@ -100,3 +100,18 @@ body {
 /* ── Estado vazio / erro ────────────────────────────────────────────────────── */
 .empty { grid-column: 1/-1; text-align: center; padding: 60px; color: var(--mt); font-size: 16px; }
 .empty.error { color: var(--no); }
+
+/* ── Tema escuro ────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:   #0f172a;
+  --card: #1e293b;
+  --bd:   #334155;
+  --tx:   #e2e8f0;
+  --mt:   #94a3b8;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #0f172a; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; }
+
+[data-theme="dark"] .sbadge.on  { background: rgba(16,185,129,.15); color: #34d399; }
+[data-theme="dark"] .sbadge.off { background: rgba(239,68,68,.15);  color: #f87171; }

@@ -86,12 +86,41 @@ function gerarTokenAdmin() {
     return token;
 }
 
+function verificarTokenAdmin(req, res, next) {
+    const auth  = req.headers['authorization'] || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+    const exp   = adminTokens.get(token);
+    if (!exp || Date.now() > exp) return res.status(401).json({ erro: 'Não autorizado' });
+    next();
+}
+
 setInterval(() => {
     const now = Date.now();
     for (const [token, exp] of adminTokens) {
         if (now > exp) adminTokens.delete(token);
     }
 }, 60_000).unref();
+
+// ── Hashing de senhas (scrypt) ────────────────────────────────────────────────
+function hashSenha(senha) {
+    return new Promise((resolve, reject) => {
+        const salt = crypto.randomBytes(16).toString('hex');
+        crypto.scrypt(senha, salt, 64, (err, hash) => {
+            if (err) return reject(err);
+            resolve(salt + ':' + hash.toString('hex'));
+        });
+    });
+}
+
+function verificarSenha(senha, armazenado) {
+    return new Promise((resolve, reject) => {
+        const [salt, key] = armazenado.split(':');
+        crypto.scrypt(senha, salt, 64, (err, derived) => {
+            if (err) return reject(err);
+            resolve(derived.toString('hex') === key);
+        });
+    });
+}
 
 // ── Credencial de estoque ─────────────────────────────────────────────────────
 let ESTOQUE_SENHA = process.env.ESTOQUE_SENHA;
@@ -131,7 +160,30 @@ const dbReady = new Promise(resolve => {
                 SELECT MIN(rowid) FROM estoque GROUP BY modelo, insumo
             )`);
         });
+        db.run(`CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            usuario TEXT NOT NULL UNIQUE,
+            senha_hash TEXT NOT NULL,
+            ativo INTEGER DEFAULT 1,
+            criado_em TEXT DEFAULT (datetime('now'))
+        )`);
         db.run('SELECT 1', resolve);
+    });
+});
+
+// Seed: cria admin inicial se não existir nenhum usuário
+dbReady.then(() => {
+    db.get('SELECT COUNT(*) AS total FROM usuarios', [], async (err, row) => {
+        if (err || row.total > 0) return;
+        try {
+            const hash = await hashSenha(ADMIN_SENHA);
+            db.run(
+                `INSERT INTO usuarios (nome, usuario, senha_hash) VALUES (?, ?, ?)`,
+                ['Administrador', ADMIN_USER, hash],
+                (e) => { if (!e) console.log(`✅ Usuário admin criado: ${ADMIN_USER}`); }
+            );
+        } catch (e) { console.error('Erro ao criar admin:', e); }
     });
 });
 
@@ -318,10 +370,19 @@ app.delete('/api/estoque/:id', verificarTokenEstoque, (req, res, next) => {
 app.post('/api/auth/login', limiterAuth, (req, res) => {
     const { usuario, senha } = req.body;
     if (!usuario || !senha) return res.status(400).json({ ok: false, erro: 'Preencha usuário e senha.' });
-    if (usuario !== ADMIN_USER || senha !== ADMIN_SENHA) {
-        return setTimeout(() => res.status(401).json({ ok: false, erro: 'Usuário ou senha incorretos.' }), 800);
-    }
-    res.json({ ok: true, token: gerarTokenAdmin(), usuario: ADMIN_USER });
+
+    db.get('SELECT * FROM usuarios WHERE usuario = ? AND ativo = 1', [usuario.trim()], async (err, user) => {
+        if (err || !user) {
+            return setTimeout(() => res.status(401).json({ ok: false, erro: 'Usuário ou senha incorretos.' }), 800);
+        }
+        try {
+            const ok = await verificarSenha(senha, user.senha_hash);
+            if (!ok) return setTimeout(() => res.status(401).json({ ok: false, erro: 'Usuário ou senha incorretos.' }), 800);
+            res.json({ ok: true, token: gerarTokenAdmin(), usuario: user.usuario, nome: user.nome });
+        } catch {
+            res.status(500).json({ ok: false, erro: 'Erro interno.' });
+        }
+    });
 });
 
 app.get('/api/auth/verify', (req, res) => {
@@ -330,6 +391,62 @@ app.get('/api/auth/verify', (req, res) => {
     const exp   = adminTokens.get(token);
     if (!exp || Date.now() > exp) return res.status(401).json({ ok: false });
     res.json({ ok: true });
+});
+
+// ── Gestão de usuários ────────────────────────────────────────────────────────
+app.get('/api/usuarios', verificarTokenAdmin, (req, res) => {
+    db.all('SELECT id, nome, usuario, ativo, criado_em FROM usuarios ORDER BY criado_em', [], (err, rows) => {
+        if (err) return res.status(500).json({ erro: 'Erro ao listar usuários.' });
+        res.json(rows);
+    });
+});
+
+app.post('/api/usuarios', verificarTokenAdmin, async (req, res) => {
+    const { nome, usuario, senha } = req.body;
+    if (!nome || !usuario || !senha) return res.status(400).json({ erro: 'Nome, usuário e senha são obrigatórios.' });
+    if (senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres.' });
+    try {
+        const hash = await hashSenha(senha);
+        db.run(
+            `INSERT INTO usuarios (nome, usuario, senha_hash) VALUES (?, ?, ?)`,
+            [nome.trim(), usuario.trim().toLowerCase(), hash],
+            function(err) {
+                if (err) return res.status(409).json({ erro: 'Usuário já existe.' });
+                res.status(201).json({ ok: true, id: this.lastID });
+            }
+        );
+    } catch { res.status(500).json({ erro: 'Erro interno.' }); }
+});
+
+app.put('/api/usuarios/:id', verificarTokenAdmin, async (req, res) => {
+    const { nome, senha, ativo } = req.body;
+    const fields = [];
+    const vals   = [];
+    if (nome  !== undefined) { fields.push('nome = ?');  vals.push(nome.trim()); }
+    if (ativo !== undefined) { fields.push('ativo = ?'); vals.push(ativo ? 1 : 0); }
+    if (senha) {
+        if (senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres.' });
+        try { fields.push('senha_hash = ?'); vals.push(await hashSenha(senha)); } catch { return res.status(500).json({ erro: 'Erro interno.' }); }
+    }
+    if (!fields.length) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
+    vals.push(req.params.id);
+    db.run(`UPDATE usuarios SET ${fields.join(', ')} WHERE id = ?`, vals, function(err) {
+        if (err) return res.status(500).json({ erro: 'Erro ao atualizar.' });
+        if (this.changes === 0) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+        res.json({ ok: true });
+    });
+});
+
+app.delete('/api/usuarios/:id', verificarTokenAdmin, (req, res) => {
+    db.get('SELECT COUNT(*) AS total FROM usuarios WHERE ativo = 1', [], (err, row) => {
+        if (err) return res.status(500).json({ erro: 'Erro interno.' });
+        if (row.total <= 1) return res.status(400).json({ erro: 'Não é possível remover o único usuário ativo.' });
+        db.run('DELETE FROM usuarios WHERE id = ?', [req.params.id], function(err) {
+            if (err) return res.status(500).json({ erro: 'Erro ao remover.' });
+            if (this.changes === 0) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+            res.status(204).end();
+        });
+    });
 });
 
 // ── Autenticação de estoque ───────────────────────────────────────────────────

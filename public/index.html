@@ -281,6 +281,8 @@
     <hr class="nav-sep">
     <button class="nav-item"        onclick="setSection('estoque',this)">    <span class="nav-icon">📦</span> Estoque</button>
     <button class="nav-item"        onclick="setSection('dispositivos',this)"><span class="nav-icon">🖨️</span> Dispositivos</button>
+    <hr class="nav-sep">
+    <button class="nav-item"        onclick="setSection('usuarios',this);carregarUsuarios()"><span class="nav-icon">👥</span> Usuários</button>
     <div class="sb-bottom">
       <button class="btn-logout" onclick="doLogout()">⎋ Sair da conta</button>
     </div>
@@ -368,6 +370,34 @@
           </thead>
           <tbody id="deviceBody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ── USUÁRIOS ─────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-usuarios">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="section-title" style="margin:0">👥 Usuários do Sistema</div>
+      </div>
+
+      <!-- Tabela de usuários -->
+      <div class="table-wrap" style="margin-bottom:28px">
+        <table>
+          <thead><tr><th>Nome</th><th>Usuário</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
+          <tbody id="usuariosBody"><tr><td colspan="5" style="text-align:center;color:var(--mt);padding:24px">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Formulário novo usuário -->
+      <div class="section-title" style="font-size:15px;margin-bottom:14px">➕ Novo Usuário</div>
+      <div class="form-card" style="max-width:460px">
+        <div class="fgrid">
+          <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva"></div>
+          <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva"></div>
+        </div>
+        <label>Senha inicial</label>
+        <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres">
+        <div id="uMsg" style="font-size:12px;margin:8px 0;min-height:18px"></div>
+        <button class="btn-add" onclick="criarUsuario()">+ Criar Usuário</button>
       </div>
     </div>
 
@@ -792,6 +822,118 @@
   });
 
   carregarDados();
+
+  // ── Usuários ─────────────────────────────────────────────────────────────────
+  function criarLinhaUsuario(u) {
+    const tr = document.createElement('tr');
+
+    const tdNome = document.createElement('td');
+    const strong = document.createElement('strong');
+    strong.textContent = u.nome;
+    tdNome.appendChild(strong);
+
+    const tdUser = document.createElement('td');
+    const code   = document.createElement('code');
+    code.textContent = u.usuario;
+    code.style.cssText = 'background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px';
+    tdUser.appendChild(code);
+
+    const tdStatus = document.createElement('td');
+    const dot = document.createElement('span');
+    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:' + (u.ativo ? 'var(--ok)' : 'var(--no)');
+    tdStatus.appendChild(dot);
+    tdStatus.appendChild(document.createTextNode(u.ativo ? 'Ativo' : 'Inativo'));
+
+    const tdData = document.createElement('td');
+    tdData.textContent = new Date(u.criado_em).toLocaleDateString('pt-BR');
+    tdData.style.cssText = 'color:var(--mt);font-size:12px';
+
+    const tdAcoes = document.createElement('td');
+    tdAcoes.style.cssText = 'display:flex;gap:8px';
+    const btnToggle = document.createElement('button');
+    btnToggle.className = 'btn-edit';
+    btnToggle.textContent = u.ativo ? 'Desativar' : 'Ativar';
+    btnToggle.addEventListener('click', () => toggleUsuario(u.id, u.ativo));
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn-del';
+    btnDel.textContent = '✕';
+    btnDel.addEventListener('click', () => removerUsuario(u.id));
+    tdAcoes.appendChild(btnToggle);
+    tdAcoes.appendChild(btnDel);
+
+    tr.appendChild(tdNome); tr.appendChild(tdUser); tr.appendChild(tdStatus);
+    tr.appendChild(tdData); tr.appendChild(tdAcoes);
+    return tr;
+  }
+
+  async function carregarUsuarios() {
+    const res  = await fetch('/api/usuarios', { headers: { 'Authorization': 'Bearer ' + _adminToken } });
+    const rows = res.ok ? await res.json() : [];
+    const body = document.getElementById('usuariosBody');
+    body.replaceChildren();
+    if (!rows.length) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.style.cssText = 'text-align:center;color:var(--mt);padding:24px';
+      td.textContent = 'Nenhum usuário cadastrado.';
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+    rows.forEach(u => body.appendChild(criarLinhaUsuario(u)));
+  }
+
+  async function criarUsuario() {
+    const nome    = document.getElementById('uNome').value.trim();
+    const usuario = document.getElementById('uUsuario').value.trim().toLowerCase();
+    const senha   = document.getElementById('uSenha').value;
+    const msg     = document.getElementById('uMsg');
+    msg.style.color = 'var(--no)';
+    msg.textContent = '';
+    if (!nome || !usuario || !senha) { msg.textContent = 'Preencha todos os campos.'; return; }
+    if (senha.length < 6) { msg.textContent = 'Senha deve ter ao menos 6 caracteres.'; return; }
+    try {
+      const res  = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _adminToken },
+        body: JSON.stringify({ nome, usuario, senha })
+      });
+      const json = await res.json();
+      if (!res.ok) { msg.textContent = json.erro || 'Erro ao criar usuário.'; return; }
+      document.getElementById('uNome').value    = '';
+      document.getElementById('uUsuario').value = '';
+      document.getElementById('uSenha').value   = '';
+      msg.style.color = 'var(--ok)';
+      msg.textContent = '✓ Usuário criado com sucesso!';
+      carregarUsuarios();
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    } catch { msg.textContent = 'Erro de conexão.'; }
+  }
+
+  async function toggleUsuario(id, ativo) {
+    await fetch('/api/usuarios/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _adminToken },
+      body: JSON.stringify({ ativo: !ativo })
+    });
+    carregarUsuarios();
+  }
+
+  async function removerUsuario(id) {
+    confirmar('Remover este usuário permanentemente?', async () => {
+      const res = await fetch('/api/usuarios/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + _adminToken }
+      });
+      if (!res.ok) {
+        const j = await res.json();
+        showToast(j.erro || 'Erro ao remover.', true);
+        return;
+      }
+      carregarUsuarios();
+    });
+  }
 </script>
 </body>
 </html>

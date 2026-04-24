@@ -7,42 +7,50 @@
   <link rel="stylesheet" href="shared.css">
   <style>
     :root {
-      --bg: #0a0a0a; --card: #161616; --accent: #FB6602;
-      --tx: #F4F4F4; --mt: #6E6E6E; --bd: #2a2a2a;
-      --red: #ef4444; --ok: #10b981;
+      --bg: #F4F4F4; --card: #ffffff; --accent: #FB6602;
+      --tx: #1a1a1a; --mt: #6E6E6E; --bd: #e5e5e5;
+      --red: #FB6602; --ok: #10b981; --no: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--tx); }
 
-    /* ── Layout ─────────────────────────────────────────────────────────────── */
-    .layout { display: flex; flex: 1; overflow: hidden; }
-
-    /* ── Sidebar ─────────────────────────────────────────────────────────────── */
-    .sidebar { width: 220px; background: #000; border-right: 1px solid var(--bd); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
-    .sb-user { padding: 14px 20px; border-bottom: 1px solid var(--bd); }
-    .sb-user span   { font-size: 11px; color: var(--mt); }
-    .sb-user strong { display: block; font-size: 13px; color: var(--tx); margin-top: 2px; }
-
-    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 20px; font-size: 13px; font-weight: 500; color: var(--mt); cursor: pointer; transition: all .2s; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
-    .nav-item:hover { color: var(--tx); background: rgba(255,255,255,.04); }
-    .nav-item.active { color: var(--accent); background: rgba(251,102,2,.08); border-right: 3px solid var(--accent); }
-    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
-    .nav-sep  { margin: 8px 20px; border: none; border-top: 1px solid var(--bd); }
-
-    .sb-bottom { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--bd); display: flex; flex-direction: column; gap: 8px; }
-    .btn-logout { background: none; border: none; color: var(--mt); font-size: 12px; cursor: pointer; padding: 6px 0; text-align: left; font-family: inherit; transition: color .2s; }
-    .btn-logout:hover { color: var(--no); }
+    /* ── Topbar horizontal laranja ───────────────────────────────────────────── */
+    .topbar-admin {
+      background: var(--accent); padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px; flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 24px; }
+    .tb-logo { color: #fff; font-size: 15px; font-weight: 900; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .tb-logo-dot { width: 8px; height: 8px; background: rgba(255,255,255,0.6); border-radius: 50%; flex-shrink: 0; }
+    .nav-links { display: flex; gap: 2px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 13px; color: rgba(255,255,255,0.75);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      border: none; background: none; font-family: inherit;
+      border-radius: 6px; transition: all .15s; white-space: nowrap;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-item.active { background: rgba(255,255,255,0.2); color: #fff; font-weight: 700; }
+    .nav-icon { font-size: 14px; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    #clock { font-family: 'Courier New', monospace; font-size: 13px; color: rgba(255,255,255,0.85); letter-spacing: 1px; }
+    .user-chip { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 12px 4px 5px; }
+    .user-avatar { width: 24px; height: 24px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    .btn-logout { background: none; border: none; color: rgba(255,255,255,0.75); font-size: 12px; cursor: pointer; padding: 6px 4px; font-family: inherit; transition: color .2s; }
+    .btn-logout:hover { color: #fff; }
 
     /* ── Main ────────────────────────────────────────────────────────────────── */
     .main { flex: 1; overflow-y: auto; padding: 28px; }
     .section { display: none; }
     .section.active { display: block; }
-    .section-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+    .section-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; color: var(--tx); }
 
-    /* ── Painel — stats ─────────────────────────────────────────────────────── */
+    /* ── Stats ──────────────────────────────────────────────────────────────── */
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-    .stat  { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+    .stat  { background: var(--card); border-radius: 12px; padding: 20px; border-left: 4px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 14px; }
     .stat-icon { font-size: 24px; }
     .stat-lbl  { font-size: 10px; color: var(--mt); text-transform: uppercase; letter-spacing: 1px; }
     .stat-val  { font-size: 30px; font-weight: 800; line-height: 1; }
@@ -51,128 +59,127 @@
     .stat-val.rd { color: var(--no); }
     .stat-val.wn { color: #f59e0b; }
 
-    /* ── Painel — lista de dispositivos ─────────────────────────────────────── */
-    .recent { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; }
-    .recent-head { padding: 14px 20px; border-bottom: 1px solid var(--bd); display: flex; justify-content: space-between; align-items: center; }
-    .recent-head h4 { font-size: 12px; font-weight: 700; color: var(--mt); text-transform: uppercase; letter-spacing: .5px; }
-    .dev-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--bd); transition: background .15s; }
+    /* ── Lista de dispositivos ───────────────────────────────────────────────── */
+    .recent { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .recent-head { padding: 14px 20px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
+    .recent-head h4 { font-size: 14px; font-weight: 800; color: var(--tx); }
+    .dev-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; border-bottom: 1px solid #f5f5f5; transition: background .15s; }
     .dev-row:last-child { border-bottom: none; }
-    .dev-row:hover { background: rgba(255,255,255,.02); }
+    .dev-row:hover { background: rgba(0,0,0,.02); }
     .dev-info strong { font-size: 13px; display: block; color: var(--tx); }
     .dev-info span   { font-size: 11px; color: var(--mt); margin-top: 2px; display: block; }
 
-    /* ── Cadastrar — form ───────────────────────────────────────────────────── */
-    .form-card { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 24px; max-width: 520px; }
-    label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; }
-    input, select { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
-    input:focus, select:focus { outline: none; border-color: var(--accent); }
-    input.is-invalid, select.is-invalid { border-color: var(--no) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.15); }
+    /* ── Formulário ──────────────────────────────────────────────────────────── */
+    .form-card { background: var(--card); border-radius: 14px; padding: 24px; max-width: 520px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; letter-spacing: .5px; }
+    input, select, textarea { width: 100%; background: var(--bg); border: 1.5px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+    input.is-invalid, select.is-invalid { border-color: var(--no) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.1); }
     .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .btn-add { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; font-size: 14px; transition: filter .2s; font-family: inherit; }
-    .btn-add:hover { filter: brightness(1.1); }
+    .btn-add:hover { filter: brightness(1.08); }
     .btn-add:disabled { opacity: .6; cursor: not-allowed; filter: none; }
 
+    /* ── Botão link tinta ────────────────────────────────────────────────────── */
+    .btn-tinta { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.25); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
+    .btn-tinta:hover { background: var(--accent); color: #fff; }
+
     /* ── Estoque ─────────────────────────────────────────────────────────────── */
-    .est-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
-    .btn-sec { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .2s; font-family: inherit; }
+    .btn-sec { background: none; border: 1.5px solid var(--bd); color: var(--mt); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .2s; font-family: inherit; }
     .btn-sec:hover { border-color: var(--no); color: var(--no); }
-
     .secao-titulo { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; }
-    .secao-titulo:first-of-type { margin-top: 0; }
-    .secao-titulo h3 { font-size: 13px; margin: 0; }
-    .badge-material { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .4px; }
-    .badge-tinta  { background: rgba(6,182,212,.15);  color: #06b6d4; border: 1px solid rgba(6,182,212,.3); }
-    .badge-toner  { background: rgba(148,163,184,.12); color: #94a3b8; border: 1px solid rgba(148,163,184,.25); }
-    .secao-empty  { color: var(--mt); font-size: 13px; padding: 16px 0; }
+    .secao-titulo h3 { font-size: 14px; font-weight: 700; color: var(--tx); }
+    .badge-material { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .badge-tinta { background: rgba(251,102,2,.1); color: var(--accent); border: 1px solid rgba(251,102,2,.2); }
+    .badge-toner { background: rgba(110,110,110,.1); color: var(--mt); border: 1px solid rgba(110,110,110,.2); }
+    .secao-empty { color: var(--mt); font-size: 13px; padding: 16px 0; }
 
-    .model-group { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 16px; transition: border-color .3s, background .3s; }
-    .model-group.unlocked { border-color: rgba(251,102,2,.5); background: rgba(251,102,2,.04); }
+    .model-group { background: var(--card); border: 1.5px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .model-group.unlocked { border-color: rgba(251,102,2,.5); background: rgba(251,102,2,.02); }
     .model-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bd); font-size: 14px; }
     .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
 
-    .toner-card { background: var(--bg); border: 1px solid var(--bd); padding: 12px; border-radius: 8px; text-align: center; transition: border-color .2s; }
+    .toner-card { background: var(--bg); border: 1.5px solid var(--bd); padding: 12px; border-radius: 8px; text-align: center; transition: border-color .2s; }
     .toner-card:hover { border-color: var(--accent); }
     .toner-card.locked .controls { opacity: .3; pointer-events: none; }
-    .toner-card.locked { border-color: rgba(51,65,85,.4); }
-
+    .toner-card.locked { border-color: #ddd; }
     .indicator { height: 3px; width: 30px; margin: 0 auto 8px; border-radius: 2px; }
-    .bg-cyan    { background: #06b6d4; box-shadow: 0 0 8px #06b6d4; }
-    .bg-magenta { background: #d946ef; box-shadow: 0 0 8px #d946ef; }
-    .bg-yellow  { background: #eab308; box-shadow: 0 0 8px #eab308; }
-    .bg-black   { background: #94a3b8; }
+    .bg-cyan    { background: #06b6d4; }
+    .bg-magenta { background: #d946ef; }
+    .bg-yellow  { background: #eab308; }
+    .bg-black   { background: #64748b; }
     .toner-name { font-size: 10px; font-weight: 600; color: var(--mt); text-transform: uppercase; margin-bottom: 8px; }
     .controls   { display: flex; align-items: center; justify-content: center; gap: 10px; }
     .btn-q { background: var(--bd); color: var(--tx); border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 16px; transition: background .2s; }
-    .btn-q:hover { background: var(--accent); }
+    .btn-q:hover { background: var(--accent); color: #fff; }
     .val { font-size: 1.15rem; font-weight: 800; min-width: 22px; }
-
-    .btn-lock { display: inline-flex; align-items: center; gap: 5px; background: rgba(51,65,85,.6); border: 1px solid var(--bd); color: var(--mt); padding: 5px 11px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; white-space: nowrap; }
+    .btn-lock { display: inline-flex; align-items: center; gap: 5px; background: rgba(200,200,200,.3); border: 1.5px solid var(--bd); color: var(--mt); padding: 5px 11px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; white-space: nowrap; }
     .btn-lock:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-lock.unlocked { background: rgba(251,102,2,.12); border-color: rgba(251,102,2,.4); color: var(--accent); }
+    .btn-lock.unlocked { background: rgba(251,102,2,.1); border-color: rgba(251,102,2,.4); color: var(--accent); }
 
-    /* ── Dispositivos — tabela ──────────────────────────────────────────────── */
-    .table-wrap { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; }
+    /* ── Tabela dispositivos ─────────────────────────────────────────────────── */
+    .table-wrap { background: var(--card); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; color: var(--mt); padding: 10px 12px; border-bottom: 1px solid var(--bd); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
-    td { padding: 10px 12px; border-bottom: 1px solid var(--bd); vertical-align: middle; }
+    th { text-align: left; color: var(--mt); padding: 10px 12px; border-bottom: 2px solid var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; background: var(--card); }
+    td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,.02); }
-
+    tr:hover td { background: rgba(251,102,2,.02); }
+    code { background: rgba(0,0,0,.05); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
     .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
     .status-dot.on  { background: var(--ok); }
     .status-dot.off { background: var(--no); animation: blink 2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
     @media (prefers-reduced-motion: reduce) { .status-dot.off { animation: none; } }
-
-    .btn-tinta { background: rgba(251,102,2,.1); border: 1px solid rgba(251,102,2,.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
-    .btn-tinta:hover { background: var(--accent); color: #fff; }
-    .btn-del  { background: none; border: none; color: #475569; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; }
+    .btn-del  { background: none; border: none; color: #bbb; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; }
     .btn-del:hover { color: var(--no); }
-    .btn-edit { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.2); color: var(--mt); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
-    .btn-edit:hover { border-color: var(--accent); color: var(--accent); background: rgba(251,102,2,.08); }
+    .btn-edit { background: rgba(110,110,110,.08); border: 1px solid rgba(110,110,110,.2); color: var(--mt); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
+    .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
     .btn-print { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); color: var(--ok); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
     .btn-print:hover { background: var(--ok); color: #fff; }
 
     /* ── Modais ──────────────────────────────────────────────────────────────── */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; padding: 16px; }
     .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 24px; width: 100%; max-width: 380px; transform: translateY(12px); transition: transform .2s; }
+    .modal { background: var(--card); border-radius: 14px; padding: 24px; width: 100%; max-width: 380px; transform: translateY(12px); transition: transform .2s; box-shadow: 0 20px 60px rgba(0,0,0,.12); }
     .modal-overlay.open .modal { transform: translateY(0); }
     .modal h4 { font-size: 15px; font-weight: 700; margin-bottom: 18px; color: var(--tx); }
+    .modal p  { font-size: 13px; color: var(--mt); margin-bottom: 16px; line-height: 1.6; }
     .modal-label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; }
-    .modal-input { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 12px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
+    .modal-input { width: 100%; background: var(--bg); border: 1.5px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 12px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
     .modal-input:focus { outline: none; border-color: var(--accent); }
     .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
     .btn-save   { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; flex: 1; transition: filter .2s; font-family: inherit; }
-    .btn-save:hover { filter: brightness(1.1); }
-    .btn-cancel { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; font-family: inherit; }
+    .btn-save:hover { filter: brightness(1.08); }
+    .btn-cancel { background: none; border: 1.5px solid var(--bd); color: var(--mt); padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; font-family: inherit; }
     .btn-cancel:hover { border-color: var(--no); color: var(--no); }
     .senha-erro { font-size: 12px; color: var(--no); display: none; margin: -6px 0 10px; }
     .senha-erro.show { display: block; }
 
-    code  { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+    /* ── Toast ──────────────────────────────────────────────────────────────── */
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--ok); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; transform: translateY(60px); opacity: 0; transition: all .3s; z-index: 1100; }
     .toast.show { transform: translateY(0); opacity: 1; }
 
+    /* ── Loader ──────────────────────────────────────────────────────────────── */
+    .loader { position: fixed; inset: 0; background: rgba(244,244,244,.8); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .3s; }
+    .loader.show { opacity: 1; pointer-events: all; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--bd); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     /* ── Responsivo ──────────────────────────────────────────────────────────── */
     @media (max-width: 900px) {
-      .layout   { flex-direction: column; }
-      .sidebar  { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 16px; border-right: none; border-bottom: 1px solid var(--bd); gap: 4px; overflow-y: visible; }
-      .sb-user  { border-bottom: none; padding: 0; margin-right: auto; }
-      .nav-item { width: auto; padding: 8px 12px; border-right: none !important; }
-      .nav-item.active { border-bottom: 2px solid var(--accent); }
-      .nav-sep  { display: none; }
-      .sb-bottom { margin-top: 0; padding: 0; border-top: none; flex-direction: row; gap: 8px; }
       .stats { grid-template-columns: repeat(2, 1fr); }
+      .nav-links .nav-item .nav-icon + * { display: none; }
     }
     @media (max-width: 640px) {
-      .main  { padding: 16px; }
+      .main { padding: 16px; }
       .fgrid { grid-template-columns: 1fr; }
       .stock-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
       .table-wrap { overflow-x: auto; }
       table { white-space: nowrap; }
       .modal-actions { flex-direction: column; }
       .btn-save, .btn-cancel { width: 100%; }
+      .topbar-admin { padding: 0 12px; }
+      #clock { display: none; }
     }
   </style>
 </head>
@@ -229,9 +236,7 @@
 <div class="modal-overlay" id="modalSenha">
   <div class="modal" style="max-width:320px">
     <h4>🔒 Desbloquear Edição</h4>
-    <p style="font-size:12px;color:var(--mt);margin-bottom:16px;line-height:1.6">
-      Digite a senha mestre para liberar os botões de ajuste por <strong style="color:var(--tx)">5 minutos</strong>.
-    </p>
+    <p>Digite a senha mestre para liberar os botões de ajuste por <strong style="color:var(--tx)">5 minutos</strong>.</p>
     <span class="modal-label">Senha</span>
     <input type="password" id="senhaInput" class="modal-input" placeholder="••••••••" autocomplete="off">
     <p class="senha-erro" id="senhaErro">❌ Senha incorreta. Tente novamente.</p>
@@ -254,155 +259,145 @@
   </div>
 </div>
 
-<!-- Topbar -->
-<div class="topbar">
-  <div>
-    <div class="logo">Impressoras Sobral</div>
-    <div class="sub">Painel Administrativo</div>
+<!-- Topbar horizontal -->
+<header class="topbar-admin">
+  <div class="topbar-left">
+    <div class="tb-logo">
+      <div class="tb-logo-dot"></div>
+      Impressoras Sobral
+    </div>
+    <nav class="nav-links">
+      <button class="nav-item active" onclick="setSection('painel',this)"><span class="nav-icon">📊</span> Painel</button>
+      <button class="nav-item" onclick="setSection('cadastrar',this)"><span class="nav-icon">➕</span> Cadastrar</button>
+      <button class="nav-item" onclick="setSection('estoque',this)"><span class="nav-icon">📦</span> Estoque</button>
+      <button class="nav-item" onclick="setSection('dispositivos',this)"><span class="nav-icon">🖨️</span> Dispositivos</button>
+      <button class="nav-item" onclick="setSection('usuarios',this);carregarUsuarios()"><span class="nav-icon">👥</span> Usuários</button>
+    </nav>
   </div>
-  <div class="tright">
-    <div id="clock">00:00:00</div>
-    <a href="dashboard.html" class="btn sc">Monitor TV</a>
-    <a href="tinta.html"     class="btn pr">Níveis de Tinta</a>
+  <div class="topbar-right">
+    <span id="clock">00:00:00</span>
+    <div class="user-chip">
+      <div class="user-avatar">👤</div>
+      <span id="userLabel" style="color:#fff;font-size:12px;font-weight:600">—</span>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Sair</button>
   </div>
-</div>
+</header>
 
-<!-- Layout -->
-<div class="layout">
+<!-- Main content -->
+<div class="main">
 
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sb-user">
-      <span>Logado como</span>
-      <strong id="userLabel">—</strong>
+  <!-- ── PAINEL ────────────────────────────────────────────────────────────── -->
+  <div class="section active" id="sec-painel">
+    <div class="stats">
+      <div class="stat"><div class="stat-icon">🖨️</div><div><div class="stat-lbl">Total</div>    <div class="stat-val or" id="stat-total">—</div></div></div>
+      <div class="stat"><div class="stat-icon">🟢</div><div><div class="stat-lbl">Online</div>   <div class="stat-val gn" id="stat-online">—</div></div></div>
+      <div class="stat"><div class="stat-icon">🔴</div><div><div class="stat-lbl">Offline</div>  <div class="stat-val rd" id="stat-offline">—</div></div></div>
+      <div class="stat"><div class="stat-icon">⚠️</div><div><div class="stat-lbl">Tinta Baixa</div><div class="stat-val wn" id="stat-baixa">—</div></div></div>
     </div>
-    <button class="nav-item active" onclick="setSection('painel',this)">     <span class="nav-icon">📊</span> Painel</button>
-    <button class="nav-item"        onclick="setSection('cadastrar',this)">  <span class="nav-icon">➕</span> Cadastrar</button>
-    <hr class="nav-sep">
-    <button class="nav-item"        onclick="setSection('estoque',this)">    <span class="nav-icon">📦</span> Estoque</button>
-    <button class="nav-item"        onclick="setSection('dispositivos',this)"><span class="nav-icon">🖨️</span> Dispositivos</button>
-    <hr class="nav-sep">
-    <button class="nav-item"        onclick="setSection('usuarios',this);carregarUsuarios()"><span class="nav-icon">👥</span> Usuários</button>
-    <div class="sb-bottom">
-      <button class="btn-logout" onclick="doLogout()">⎋ Sair da conta</button>
+    <div class="recent">
+      <div class="recent-head">
+        <h4>Dispositivos cadastrados</h4>
+        <button class="btn-tinta" style="font-size:11px" onclick="setSection('cadastrar', document.querySelector('[onclick*=cadastrar]'))">+ Adicionar</button>
+      </div>
+      <div id="recentList"></div>
     </div>
-  </nav>
+  </div>
 
-  <!-- Main content -->
-  <div class="main">
-
-    <!-- ── PAINEL ────────────────────────────────────────────────────────────── -->
-    <div class="section active" id="sec-painel">
-      <div class="stats">
-        <div class="stat"><div class="stat-icon">🖨️</div><div><div class="stat-lbl">Total</div>    <div class="stat-val or" id="stat-total">—</div></div></div>
-        <div class="stat"><div class="stat-icon">🟢</div><div><div class="stat-lbl">Online</div>   <div class="stat-val gn" id="stat-online">—</div></div></div>
-        <div class="stat"><div class="stat-icon">🔴</div><div><div class="stat-lbl">Offline</div>  <div class="stat-val rd" id="stat-offline">—</div></div></div>
-        <div class="stat"><div class="stat-icon">⚠️</div><div><div class="stat-lbl">Tinta Baixa</div><div class="stat-val wn" id="stat-baixa">—</div></div></div>
-      </div>
-      <div class="recent">
-        <div class="recent-head">
-          <h4>Dispositivos cadastrados</h4>
-          <button class="btn-tinta" style="font-size:11px" onclick="setSection('cadastrar', document.querySelector('[onclick*=cadastrar]'))">+ Adicionar</button>
-        </div>
-        <div id="recentList"></div>
-      </div>
-    </div>
-
-    <!-- ── CADASTRAR ─────────────────────────────────────────────────────────── -->
-    <div class="section" id="sec-cadastrar">
-      <div class="section-title">➕ Nova Impressora</div>
-      <div class="form-card">
-        <form id="formAdd">
-          <div class="fgrid">
-            <div>
-              <label>Fabricante</label>
-              <select name="fabricante"><option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option></select>
-            </div>
-            <div>
-              <label>Material do Suprimento</label>
-              <select name="material"><option value="Tinta">🖋️ Tinta</option><option value="Toner">⬛ Toner</option></select>
-            </div>
-          </div>
-          <label>Modelo / Setor</label>
-          <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
-          <label>IP / Endereço</label>
-          <input type="text" name="ip" placeholder="192.168.1.50">
-          <label>Localização</label>
-          <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
-          <div class="fgrid">
-            <div>
-              <label>Comunidade SNMP</label>
-              <input type="text" name="comunidade" placeholder="public" value="public">
-            </div>
-            <div>
-              <label>Tipo de Suprimento</label>
-              <select name="tipo">
-                <option value="Colorido">Colorido (CMYK)</option>
-                <option value="Mono">Apenas Preto</option>
-                <option value="Manutencao">Caixa Manutenção</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn-add">+ Registrar Equipamento</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- ── ESTOQUE ────────────────────────────────────────────────────────────── -->
-    <div class="section" id="sec-estoque">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div class="section-title" style="margin:0">📦 Estoque de Suprimentos</div>
-        <button onclick="zerarTudo()" class="btn-sec">🗑️ Zerar Estoque</button>
-      </div>
-      <div class="secao-titulo"><h3>🖋️ Impressoras de Tinta</h3><span class="badge-material badge-tinta">TINTA</span></div>
-      <div id="estoqueContainerTinta"></div>
-      <div class="secao-titulo"><h3>⬛ Impressoras de Toner</h3><span class="badge-material badge-toner">TONER</span></div>
-      <div id="estoqueContainerToner"></div>
-    </div>
-
-    <!-- ── DISPOSITIVOS ───────────────────────────────────────────────────────── -->
-    <div class="section" id="sec-dispositivos">
-      <div class="section-title">🖨️ Dispositivos Cadastrados</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Fabricante</th><th>Modelo / Setor</th><th>IP</th><th>Localização</th><th>Status</th><th>Ações</th></tr>
-          </thead>
-          <tbody id="deviceBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ── USUÁRIOS ─────────────────────────────────────────────────────────── -->
-    <div class="section" id="sec-usuarios">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div class="section-title" style="margin:0">👥 Usuários do Sistema</div>
-      </div>
-
-      <!-- Tabela de usuários -->
-      <div class="table-wrap" style="margin-bottom:28px">
-        <table>
-          <thead><tr><th>Nome</th><th>Usuário</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
-          <tbody id="usuariosBody"><tr><td colspan="5" style="text-align:center;color:var(--mt);padding:24px">Carregando...</td></tr></tbody>
-        </table>
-      </div>
-
-      <!-- Formulário novo usuário -->
-      <div class="section-title" style="font-size:15px;margin-bottom:14px">➕ Novo Usuário</div>
-      <div class="form-card" style="max-width:460px">
+  <!-- ── CADASTRAR ─────────────────────────────────────────────────────────── -->
+  <div class="section" id="sec-cadastrar">
+    <div class="section-title">➕ Nova Impressora</div>
+    <div class="form-card">
+      <form id="formAdd">
         <div class="fgrid">
-          <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva"></div>
-          <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva"></div>
+          <div>
+            <label>Fabricante</label>
+            <select name="fabricante"><option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option></select>
+          </div>
+          <div>
+            <label>Material do Suprimento</label>
+            <select name="material"><option value="Tinta">🖋️ Tinta</option><option value="Toner">⬛ Toner</option></select>
+          </div>
         </div>
-        <label>Senha inicial</label>
-        <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres">
-        <div id="uMsg" style="font-size:12px;margin:8px 0;min-height:18px"></div>
-        <button class="btn-add" onclick="criarUsuario()">+ Criar Usuário</button>
-      </div>
+        <label>Modelo / Setor</label>
+        <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
+        <label>IP / Endereço</label>
+        <input type="text" name="ip" placeholder="192.168.1.50">
+        <label>Localização</label>
+        <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
+        <div class="fgrid">
+          <div>
+            <label>Comunidade SNMP</label>
+            <input type="text" name="comunidade" placeholder="public" value="public">
+          </div>
+          <div>
+            <label>Tipo de Suprimento</label>
+            <select name="tipo">
+              <option value="Colorido">Colorido (CMYK)</option>
+              <option value="Mono">Apenas Preto</option>
+              <option value="Manutencao">Caixa Manutenção</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-add">+ Registrar Equipamento</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── ESTOQUE ────────────────────────────────────────────────────────────── -->
+  <div class="section" id="sec-estoque">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="section-title" style="margin:0">📦 Estoque de Suprimentos</div>
+      <button onclick="zerarTudo()" class="btn-sec">🗑️ Zerar Estoque</button>
+    </div>
+    <div class="secao-titulo"><h3>🖋️ Impressoras de Tinta</h3><span class="badge-material badge-tinta">TINTA</span></div>
+    <div id="estoqueContainerTinta"></div>
+    <div class="secao-titulo"><h3>⬛ Impressoras de Toner</h3><span class="badge-material badge-toner">TONER</span></div>
+    <div id="estoqueContainerToner"></div>
+  </div>
+
+  <!-- ── DISPOSITIVOS ───────────────────────────────────────────────────────── -->
+  <div class="section" id="sec-dispositivos">
+    <div class="section-title">🖨️ Dispositivos Cadastrados</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Fabricante</th><th>Modelo / Setor</th><th>IP</th><th>Localização</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="deviceBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── USUÁRIOS ─────────────────────────────────────────────────────────── -->
+  <div class="section" id="sec-usuarios">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div class="section-title" style="margin:0">👥 Usuários do Sistema</div>
     </div>
 
-  </div><!-- /.main -->
-</div><!-- /.layout -->
+    <!-- Tabela de usuários -->
+    <div class="table-wrap" style="margin-bottom:28px">
+      <table>
+        <thead><tr><th>Nome</th><th>Usuário</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
+        <tbody id="usuariosBody"><tr><td colspan="5" style="text-align:center;color:var(--mt);padding:24px">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Formulário novo usuário -->
+    <div class="section-title" style="font-size:15px;margin-bottom:14px">➕ Novo Usuário</div>
+    <div class="form-card" style="max-width:460px">
+      <div class="fgrid">
+        <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva"></div>
+        <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva"></div>
+      </div>
+      <label>Senha inicial</label>
+      <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres">
+      <div id="uMsg" style="font-size:12px;margin:8px 0;min-height:18px"></div>
+      <button class="btn-add" onclick="criarUsuario()">+ Criar Usuário</button>
+    </div>
+  </div>
+
+</div><!-- /.main -->
 
 <script>
   const CORES_MAP       = { Colorido: ['Preto','Ciano','Magenta','Amarelo'], Mono: ['Preto'], Manutencao: ['Manutenção'] };
@@ -835,7 +830,6 @@
     const tdUser = document.createElement('td');
     const code   = document.createElement('code');
     code.textContent = u.usuario;
-    code.style.cssText = 'background:rgba(255,255,255,.06);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px';
     tdUser.appendChild(code);
 
     const tdStatus = document.createElement('td');

@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>imageCLASS | Admin</title>
   <link rel="stylesheet" href="shared.css">
   <style>
@@ -11,31 +12,85 @@
       --red: #ef4444; --ok: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--tx); display: flex; height: 100vh; }
 
-    aside { width: 300px; background: var(--card); border-right: 1px solid var(--bd); padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
-    .logo { font-weight: 800; font-size: 1.2rem; color: var(--accent); letter-spacing: -1px; margin-bottom: 8px; }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
 
+    /* ── Layout ─────────────────────────────────────────────────────────────── */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+    .sidebar { width: 220px; background: #000; border-right: 1px solid var(--bd); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+    .sb-user { padding: 14px 20px; border-bottom: 1px solid var(--bd); }
+    .sb-user span   { font-size: 11px; color: var(--mt); }
+    .sb-user strong { display: block; font-size: 13px; color: var(--tx); margin-top: 2px; }
+
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 20px; font-size: 13px; font-weight: 500; color: var(--mt); cursor: pointer; transition: all .2s; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+    .nav-item:hover { color: var(--tx); background: rgba(255,255,255,.04); }
+    .nav-item.active { color: var(--accent); background: rgba(251,102,2,.08); border-right: 3px solid var(--accent); }
+    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+    .nav-sep  { margin: 8px 20px; border: none; border-top: 1px solid var(--bd); }
+
+    .sb-bottom { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--bd); display: flex; flex-direction: column; gap: 8px; }
+    .btn-logout { background: none; border: none; color: var(--mt); font-size: 12px; cursor: pointer; padding: 6px 0; text-align: left; font-family: inherit; transition: color .2s; }
+    .btn-logout:hover { color: var(--no); }
+
+    /* ── Main ────────────────────────────────────────────────────────────────── */
+    .main { flex: 1; overflow-y: auto; padding: 28px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+
+    /* ── Painel — stats ─────────────────────────────────────────────────────── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat  { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
+    .stat-icon { font-size: 24px; }
+    .stat-lbl  { font-size: 10px; color: var(--mt); text-transform: uppercase; letter-spacing: 1px; }
+    .stat-val  { font-size: 30px; font-weight: 800; line-height: 1; }
+    .stat-val.or { color: var(--accent); }
+    .stat-val.gn { color: var(--ok); }
+    .stat-val.rd { color: var(--no); }
+    .stat-val.wn { color: #f59e0b; }
+
+    /* ── Painel — lista de dispositivos ─────────────────────────────────────── */
+    .recent { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; }
+    .recent-head { padding: 14px 20px; border-bottom: 1px solid var(--bd); display: flex; justify-content: space-between; align-items: center; }
+    .recent-head h4 { font-size: 12px; font-weight: 700; color: var(--mt); text-transform: uppercase; letter-spacing: .5px; }
+    .dev-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--bd); transition: background .15s; }
+    .dev-row:last-child { border-bottom: none; }
+    .dev-row:hover { background: rgba(255,255,255,.02); }
+    .dev-info strong { font-size: 13px; display: block; color: var(--tx); }
+    .dev-info span   { font-size: 11px; color: var(--mt); margin-top: 2px; display: block; }
+
+    /* ── Cadastrar — form ───────────────────────────────────────────────────── */
+    .form-card { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 24px; max-width: 520px; }
     label { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; display: block; margin-bottom: 4px; }
-    input, select { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; }
+    input, select { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 8px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
     input:focus, select:focus { outline: none; border-color: var(--accent); }
     input.is-invalid, select.is-invalid { border-color: var(--no) !important; box-shadow: 0 0 0 2px rgba(239,68,68,.15); }
-
-    .btn-add { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; font-size: 14px; transition: filter .2s; }
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .btn-add { background: var(--accent); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; font-size: 14px; transition: filter .2s; font-family: inherit; }
     .btn-add:hover { filter: brightness(1.1); }
-    .btn-sec { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%; margin-top: 6px; transition: all .2s; }
+    .btn-add:disabled { opacity: .6; cursor: not-allowed; filter: none; }
+
+    /* ── Estoque ─────────────────────────────────────────────────────────────── */
+    .est-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+    .btn-sec { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .2s; font-family: inherit; }
     .btn-sec:hover { border-color: var(--no); color: var(--no); }
 
-    main { flex: 1; padding: 24px; overflow-y: auto; }
-    h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--tx); }
+    .secao-titulo { display: flex; align-items: center; gap: 10px; margin: 24px 0 12px; }
+    .secao-titulo:first-of-type { margin-top: 0; }
+    .secao-titulo h3 { font-size: 13px; margin: 0; }
+    .badge-material { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .4px; }
+    .badge-tinta  { background: rgba(6,182,212,.15);  color: #06b6d4; border: 1px solid rgba(6,182,212,.3); }
+    .badge-toner  { background: rgba(148,163,184,.12); color: #94a3b8; border: 1px solid rgba(148,163,184,.25); }
+    .secao-empty  { color: var(--mt); font-size: 13px; padding: 16px 0; }
 
-    .model-group { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 20px; transition: border-color .3s, background .3s; }
+    .model-group { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 16px; transition: border-color .3s, background .3s; }
     .model-group.unlocked { border-color: rgba(251,102,2,.5); background: rgba(251,102,2,.04); }
-
     .model-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--bd); font-size: 14px; }
     .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
 
-    .toner-card { background: var(--bg); border: 1px solid var(--bd); padding: 12px; border-radius: 8px; text-align: center; transition: border-color .2s, opacity .2s; }
+    .toner-card { background: var(--bg); border: 1px solid var(--bd); padding: 12px; border-radius: 8px; text-align: center; transition: border-color .2s; }
     .toner-card:hover { border-color: var(--accent); }
     .toner-card.locked .controls { opacity: .3; pointer-events: none; }
     .toner-card.locked { border-color: rgba(51,65,85,.4); }
@@ -44,10 +99,9 @@
     .bg-cyan    { background: #06b6d4; box-shadow: 0 0 8px #06b6d4; }
     .bg-magenta { background: #d946ef; box-shadow: 0 0 8px #d946ef; }
     .bg-yellow  { background: #eab308; box-shadow: 0 0 8px #eab308; }
-    .bg-black   { background: #94a3b8; box-shadow: 0 0 8px #94a3b8; }
-
+    .bg-black   { background: #94a3b8; }
     .toner-name { font-size: 10px; font-weight: 600; color: var(--mt); text-transform: uppercase; margin-bottom: 8px; }
-    .controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .controls   { display: flex; align-items: center; justify-content: center; gap: 10px; }
     .btn-q { background: var(--bd); color: var(--tx); border: none; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 16px; transition: background .2s; }
     .btn-q:hover { background: var(--accent); }
     .val { font-size: 1.15rem; font-weight: 800; min-width: 22px; }
@@ -56,29 +110,30 @@
     .btn-lock:hover { border-color: var(--accent); color: var(--accent); }
     .btn-lock.unlocked { background: rgba(251,102,2,.12); border-color: rgba(251,102,2,.4); color: var(--accent); }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+    /* ── Dispositivos — tabela ──────────────────────────────────────────────── */
+    .table-wrap { background: var(--card); border: 1px solid var(--bd); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { text-align: left; color: var(--mt); padding: 10px 12px; border-bottom: 1px solid var(--bd); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
     td { padding: 10px 12px; border-bottom: 1px solid var(--bd); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(255,255,255,.02); }
 
     .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
     .status-dot.on  { background: var(--ok); }
     .status-dot.off { background: var(--no); animation: blink 2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-    @media (prefers-reduced-motion: reduce) {
-      .status-dot.off { animation: none; }
-      .sbadge.off     { animation: none; }
-    }
+    @media (prefers-reduced-motion: reduce) { .status-dot.off { animation: none; } }
 
     .btn-tinta { background: rgba(251,102,2,.1); border: 1px solid rgba(251,102,2,.3); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all .2s; }
     .btn-tinta:hover { background: var(--accent); color: #fff; }
-    .btn-del { background: none; border: none; color: #475569; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; }
-    .btn-del:hover { color: var(--red); }
+    .btn-del  { background: none; border: none; color: #475569; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; }
+    .btn-del:hover { color: var(--no); }
     .btn-edit { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.2); color: var(--mt); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
     .btn-edit:hover { border-color: var(--accent); color: var(--accent); background: rgba(251,102,2,.08); }
     .btn-print { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); color: var(--ok); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
     .btn-print:hover { background: var(--ok); color: #fff; }
 
+    /* ── Modais ──────────────────────────────────────────────────────────────── */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; }
     .modal-overlay.open { opacity: 1; pointer-events: all; }
     .modal { background: var(--card); border: 1px solid var(--bd); border-radius: 14px; padding: 24px; width: 100%; max-width: 380px; transform: translateY(12px); transition: transform .2s; }
@@ -88,38 +143,34 @@
     .modal-input { width: 100%; background: var(--bg); border: 1px solid var(--bd); padding: 10px; border-radius: 6px; color: var(--tx); margin-bottom: 12px; font-size: 13px; transition: border-color .2s; font-family: inherit; }
     .modal-input:focus { outline: none; border-color: var(--accent); }
     .modal-actions { display: flex; gap: 8px; margin-top: 4px; }
-    .btn-save { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; flex: 1; transition: filter .2s; font-family: inherit; }
+    .btn-save   { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; flex: 1; transition: filter .2s; font-family: inherit; }
     .btn-save:hover { filter: brightness(1.1); }
     .btn-cancel { background: none; border: 1px solid var(--bd); color: var(--mt); padding: 10px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; font-family: inherit; }
     .btn-cancel:hover { border-color: var(--no); color: var(--no); }
     .senha-erro { font-size: 12px; color: var(--no); display: none; margin: -6px 0 10px; }
     .senha-erro.show { display: block; }
 
-    code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
-    .secao-titulo { display: flex; align-items: center; gap: 10px; margin: 28px 0 14px; }
-    .secao-titulo h3 { margin: 0; }
-    .badge-material { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .4px; }
-    .badge-tinta  { background: rgba(6,182,212,.15);  color: #06b6d4; border: 1px solid rgba(6,182,212,.3); }
-    .badge-toner  { background: rgba(148,163,184,.12); color: #94a3b8; border: 1px solid rgba(148,163,184,.25); }
-    .secao-empty  { color: var(--mt); font-size: 13px; padding: 16px 0; }
-    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--ok); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; transform: translateY(60px); opacity: 0; transition: all .3s; z-index: 999; }
+    code  { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--ok); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; transform: translateY(60px); opacity: 0; transition: all .3s; z-index: 1100; }
     .toast.show { transform: translateY(0); opacity: 1; }
-    .user-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg); border: 1px solid var(--bd); border-radius: 8px; margin-bottom: 4px; }
-    .user-bar span { font-size: 12px; color: var(--mt); }
-    .user-bar strong { color: var(--tx); font-size: 12px; }
-    .btn-logout { background: none; border: none; color: var(--mt); font-size: 11px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color .2s; font-family: inherit; }
-    .btn-logout:hover { color: var(--no); }
 
+    /* ── Responsivo ──────────────────────────────────────────────────────────── */
     @media (max-width: 900px) {
-      body  { flex-direction: column; height: auto; min-height: 100vh; }
-      aside { width: 100%; border-right: none; border-bottom: 1px solid var(--bd); }
-      main  { overflow-y: visible; }
+      .layout   { flex-direction: column; }
+      .sidebar  { width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 8px 16px; border-right: none; border-bottom: 1px solid var(--bd); gap: 4px; overflow-y: visible; }
+      .sb-user  { border-bottom: none; padding: 0; margin-right: auto; }
+      .nav-item { width: auto; padding: 8px 12px; border-right: none !important; }
+      .nav-item.active { border-bottom: 2px solid var(--accent); }
+      .nav-sep  { display: none; }
+      .sb-bottom { margin-top: 0; padding: 0; border-top: none; flex-direction: row; gap: 8px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 640px) {
-      aside { padding: 16px; }
-      main  { padding: 16px; }
+      .main  { padding: 16px; }
+      .fgrid { grid-template-columns: 1fr; }
       .stock-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+      .table-wrap { overflow-x: auto; }
+      table { white-space: nowrap; }
       .modal-actions { flex-direction: column; }
       .btn-save, .btn-cancel { width: 100%; }
     }
@@ -153,7 +204,7 @@
     <input type="text" id="editLocalizacao" class="modal-input" placeholder="Ex: 2º Andar - Sala 201">
     <div class="modal-actions">
       <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-      <button class="btn-save" onclick="salvarEdicao()">Salvar alterações</button>
+      <button class="btn-save"   onclick="salvarEdicao()">Salvar alterações</button>
     </div>
   </div>
 </div>
@@ -169,19 +220,7 @@
     <textarea id="printConteudo" class="modal-input" rows="6" placeholder="Digite o texto que deseja imprimir..." style="resize:vertical;font-family:monospace"></textarea>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="document.getElementById('modalPrint').classList.remove('open')">Cancelar</button>
-      <button class="btn-save" onclick="enviarImpressao()">🖨️ Imprimir</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal confirmação de ação destrutiva -->
-<div class="modal-overlay" id="modalConfirm">
-  <div class="modal" style="max-width:340px">
-    <h4 id="confirmTitle">Confirmar</h4>
-    <p id="confirmMsg" style="font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.6"></p>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="document.getElementById('modalConfirm').classList.remove('open')">Cancelar</button>
-      <button class="btn-save" id="btnConfirmOk" style="background:var(--no)">Confirmar</button>
+      <button class="btn-save"   onclick="enviarImpressao()">🖨️ Imprimir</button>
     </div>
   </div>
 </div>
@@ -198,74 +237,142 @@
     <p class="senha-erro" id="senhaErro">❌ Senha incorreta. Tente novamente.</p>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="fecharModalSenha()">Cancelar</button>
-      <button class="btn-save" id="btnDesbloquear" onclick="validarSenha()">Desbloquear</button>
+      <button class="btn-save"   id="btnDesbloquear" onclick="validarSenha()">Desbloquear</button>
     </div>
   </div>
 </div>
 
-<aside>
-  <div class="logo">Vitinho<span style="color:var(--tx)">Quebradeira</span></div>
-  <div class="user-bar">
-    <div><span>Logado como </span><strong id="userLabel">—</strong></div>
-    <button class="btn-logout" onclick="doLogout()">Sair</button>
+<!-- Modal confirmação -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:340px">
+    <h4 id="confirmTitle">Confirmar</h4>
+    <p id="confirmMsg" style="font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modalConfirm').classList.remove('open')">Cancelar</button>
+      <button class="btn-save"   id="btnConfirmOk" style="background:var(--no)">Confirmar</button>
+    </div>
   </div>
+</div>
 
-  <form id="formAdd">
-    <label>Fabricante</label>
-    <select name="fabricante">
-      <option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option>
-    </select>
-    <label>Modelo / Setor</label>
-    <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
-    <label>IP / Endereço</label>
-    <input type="text" name="ip" placeholder="192.168.1.50">
-    <label>Localização</label>
-    <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
-    <label>Comunidade SNMP</label>
-    <input type="text" name="comunidade" placeholder="public" value="public">
-    <label>Tipo de Suprimento</label>
-    <select name="tipo">
-      <option value="Colorido">Colorido (CMYK)</option>
-      <option value="Mono">Apenas Preto</option>
-      <option value="Manutencao">Caixa Manutenção</option>
-    </select>
-    <label>Material do Suprimento</label>
-    <select name="material">
-      <option value="Tinta">🖋️ Tinta</option>
-      <option value="Toner">⬛ Toner</option>
-    </select>
-    <button type="submit" class="btn-add">+ Registrar Equipamento</button>
-  </form>
-
-  <div style="margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:12px;border-top:1px solid var(--bd)">
-    <button onclick="zerarTudo()" class="btn-sec">🗑️ Zerar Estoque</button>
+<!-- Topbar -->
+<div class="topbar">
+  <div>
+    <div class="logo">imageCLASS</div>
+    <div class="sub">Painel Administrativo</div>
   </div>
-</aside>
-
-<main>
-  <div class="secao-titulo"><h3>📦 Estoque de Suprimentos</h3></div>
-  <div class="secao-titulo" style="margin-top:0">
-    <h3 style="font-size:13px">🖋️ Impressoras de Tinta</h3>
-    <span class="badge-material badge-tinta">TINTA</span>
+  <div class="tright">
+    <div id="clock">00:00:00</div>
+    <a href="dashboard.html" class="btn sc">Monitor TV</a>
+    <a href="tinta.html"     class="btn pr">Níveis de Tinta</a>
   </div>
-  <div id="estoqueContainerTinta"></div>
-  <div class="secao-titulo">
-    <h3 style="font-size:13px">⬛ Impressoras de Toner</h3>
-    <span class="badge-material badge-toner">TONER</span>
-  </div>
-  <div id="estoqueContainerToner"></div>
+</div>
 
-  <h3 style="margin-top:32px">🖨️ Dispositivos Cadastrados</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Fabricante</th><th>Modelo / Setor</th><th>IP</th>
-        <th>Localização</th><th>Status</th><th>Ações</th>
-      </tr>
-    </thead>
-    <tbody id="deviceBody"></tbody>
-  </table>
-</main>
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sb-user">
+      <span>Logado como</span>
+      <strong id="userLabel">—</strong>
+    </div>
+    <button class="nav-item active" onclick="setSection('painel',this)">     <span class="nav-icon">📊</span> Painel</button>
+    <button class="nav-item"        onclick="setSection('cadastrar',this)">  <span class="nav-icon">➕</span> Cadastrar</button>
+    <hr class="nav-sep">
+    <button class="nav-item"        onclick="setSection('estoque',this)">    <span class="nav-icon">📦</span> Estoque</button>
+    <button class="nav-item"        onclick="setSection('dispositivos',this)"><span class="nav-icon">🖨️</span> Dispositivos</button>
+    <div class="sb-bottom">
+      <button class="btn-logout" onclick="doLogout()">⎋ Sair da conta</button>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- ── PAINEL ────────────────────────────────────────────────────────────── -->
+    <div class="section active" id="sec-painel">
+      <div class="stats">
+        <div class="stat"><div class="stat-icon">🖨️</div><div><div class="stat-lbl">Total</div>    <div class="stat-val or" id="stat-total">—</div></div></div>
+        <div class="stat"><div class="stat-icon">🟢</div><div><div class="stat-lbl">Online</div>   <div class="stat-val gn" id="stat-online">—</div></div></div>
+        <div class="stat"><div class="stat-icon">🔴</div><div><div class="stat-lbl">Offline</div>  <div class="stat-val rd" id="stat-offline">—</div></div></div>
+        <div class="stat"><div class="stat-icon">⚠️</div><div><div class="stat-lbl">Tinta Baixa</div><div class="stat-val wn" id="stat-baixa">—</div></div></div>
+      </div>
+      <div class="recent">
+        <div class="recent-head">
+          <h4>Dispositivos cadastrados</h4>
+          <button class="btn-tinta" style="font-size:11px" onclick="setSection('cadastrar', document.querySelector('[onclick*=cadastrar]'))">+ Adicionar</button>
+        </div>
+        <div id="recentList"></div>
+      </div>
+    </div>
+
+    <!-- ── CADASTRAR ─────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-cadastrar">
+      <div class="section-title">➕ Nova Impressora</div>
+      <div class="form-card">
+        <form id="formAdd">
+          <div class="fgrid">
+            <div>
+              <label>Fabricante</label>
+              <select name="fabricante"><option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option></select>
+            </div>
+            <div>
+              <label>Material do Suprimento</label>
+              <select name="material"><option value="Tinta">🖋️ Tinta</option><option value="Toner">⬛ Toner</option></select>
+            </div>
+          </div>
+          <label>Modelo / Setor</label>
+          <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
+          <label>IP / Endereço</label>
+          <input type="text" name="ip" placeholder="192.168.1.50">
+          <label>Localização</label>
+          <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
+          <div class="fgrid">
+            <div>
+              <label>Comunidade SNMP</label>
+              <input type="text" name="comunidade" placeholder="public" value="public">
+            </div>
+            <div>
+              <label>Tipo de Suprimento</label>
+              <select name="tipo">
+                <option value="Colorido">Colorido (CMYK)</option>
+                <option value="Mono">Apenas Preto</option>
+                <option value="Manutencao">Caixa Manutenção</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-add">+ Registrar Equipamento</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── ESTOQUE ────────────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-estoque">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="section-title" style="margin:0">📦 Estoque de Suprimentos</div>
+        <button onclick="zerarTudo()" class="btn-sec">🗑️ Zerar Estoque</button>
+      </div>
+      <div class="secao-titulo"><h3>🖋️ Impressoras de Tinta</h3><span class="badge-material badge-tinta">TINTA</span></div>
+      <div id="estoqueContainerTinta"></div>
+      <div class="secao-titulo"><h3>⬛ Impressoras de Toner</h3><span class="badge-material badge-toner">TONER</span></div>
+      <div id="estoqueContainerToner"></div>
+    </div>
+
+    <!-- ── DISPOSITIVOS ───────────────────────────────────────────────────────── -->
+    <div class="section" id="sec-dispositivos">
+      <div class="section-title">🖨️ Dispositivos Cadastrados</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Fabricante</th><th>Modelo / Setor</th><th>IP</th><th>Localização</th><th>Status</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="deviceBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /.main -->
+</div><!-- /.layout -->
 
 <script>
   const CORES_MAP       = { Colorido: ['Preto','Ciano','Magenta','Amarelo'], Mono: ['Preto'], Manutencao: ['Manutenção'] };
@@ -274,6 +381,9 @@
   let   modeloPendente  = null;
   let   estoqueToken    = null;
 
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
+
+  // ── Sessão ────────────────────────────────────────────────────────────────────
   (function() {
     try {
       const s = JSON.parse(sessionStorage.getItem('ic_session') || 'null');
@@ -286,18 +396,25 @@
   })();
 
   function doLogout() { sessionStorage.removeItem('ic_session'); window.location.replace('login.html'); }
-  function corClasse(c) {
-    const v = c.toLowerCase();
-    if (v.includes('ciano'))   return 'bg-cyan';
-    if (v.includes('magenta')) return 'bg-magenta';
-    if (v.includes('amarelo')) return 'bg-yellow';
-    return 'bg-black';
+
+  // ── Navegação de seções ───────────────────────────────────────────────────────
+  function setSection(id, btn) {
+    document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
   }
-  function limparID(t) { return t.replace(/[^a-zA-Z0-9]/g, ''); }
+
+  // ── Relógio ────────────────────────────────────────────────────────────────────
+  setInterval(() => {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR');
+  }, 1000);
+
+  // ── Confirmação modal ─────────────────────────────────────────────────────────
   let _confirmCb = null;
   function confirmar(titulo, msg, cb) {
     document.getElementById('confirmTitle').textContent = titulo;
-    document.getElementById('confirmMsg').textContent = msg;
+    document.getElementById('confirmMsg').textContent   = msg;
     _confirmCb = cb;
     document.getElementById('modalConfirm').classList.add('open');
     setTimeout(() => document.getElementById('btnConfirmOk').focus(), 150);
@@ -307,6 +424,7 @@
     if (_confirmCb) { const cb = _confirmCb; _confirmCb = null; await cb(); }
   });
 
+  // ── Toast ─────────────────────────────────────────────────────────────────────
   function showToast(msg, erro = false) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -315,7 +433,17 @@
     setTimeout(() => t.classList.remove('show'), 2500);
   }
 
-  // ── CADEADO ──────────────────────────────────────────────────────────────────
+  // ── Utilitários ───────────────────────────────────────────────────────────────
+  function corClasse(c) {
+    const v = c.toLowerCase();
+    if (v.includes('ciano'))   return 'bg-cyan';
+    if (v.includes('magenta')) return 'bg-magenta';
+    if (v.includes('amarelo')) return 'bg-yellow';
+    return 'bg-black';
+  }
+  function limparID(t) { return t.replace(/[^a-zA-Z0-9]/g, ''); }
+
+  // ── Cadeado ────────────────────────────────────────────────────────────────────
   function toggleLock(modelo) {
     if (unlockedGroups[modelo]) {
       lockGroup(modelo);
@@ -366,17 +494,10 @@
     const group = document.querySelector(`.model-group[data-modelo="${modelo}"]`);
     const btn   = document.getElementById(`lock-${key}`);
     if (!group) return;
-
     group.classList.add('unlocked');
     group.querySelectorAll('.toner-card').forEach(c => c.classList.remove('locked'));
-
-    if (btn) {
-      btn.classList.add('unlocked');
-      btn.innerHTML = `🔓 <span id="timer-${key}">5:00</span>`;
-    }
-
+    if (btn) { btn.classList.add('unlocked'); btn.innerHTML = `🔓 <span id="timer-${key}">5:00</span>`; }
     if (unlockedGroups[modelo]) clearInterval(unlockedGroups[modelo].interval);
-
     let remaining = UNLOCK_DURATION;
     const interval = setInterval(() => {
       remaining--;
@@ -384,7 +505,6 @@
       if (el) el.textContent = `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;
       if (remaining <= 0) lockGroup(modelo);
     }, 1000);
-
     unlockedGroups[modelo] = { interval };
     showToast('Desbloqueado por 5 minutos ✓');
   }
@@ -401,12 +521,37 @@
     showToast('Estoque bloqueado');
   }
 
-  // ── CARREGAR DADOS ────────────────────────────────────────────────────────────
+  // ── Renderizar painel ─────────────────────────────────────────────────────────
+  function renderizarPainel(imps) {
+    const tBaixa = p => (p.suprimentos || []).some(s => s.percentual <= 15);
+    document.getElementById('stat-total').textContent   = imps.length;
+    document.getElementById('stat-online').textContent  = imps.filter(p => p.online).length;
+    document.getElementById('stat-offline').textContent = imps.filter(p => !p.online).length;
+    document.getElementById('stat-baixa').textContent   = imps.filter(p => p.online && tBaixa(p)).length;
+
+    const list = document.getElementById('recentList');
+    if (!imps.length) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--mt);font-size:13px">Nenhuma impressora cadastrada.</div>';
+      return;
+    }
+    list.innerHTML = imps.map(p => `
+      <div class="dev-row">
+        <div class="dev-info">
+          <strong>${esc(p.nome)}</strong>
+          <span>${esc(p.ip)}${p.localizacao ? ' · ' + esc(p.localizacao) : ''}</span>
+        </div>
+        <span class="sbadge ${p.online ? 'on' : 'off'}">${p.online ? '● ONLINE' : '● OFFLINE'}</span>
+      </div>`).join('');
+  }
+
+  // ── Carregar dados ────────────────────────────────────────────────────────────
   async function carregarDados() {
     try {
       const [resImps, resEst] = await Promise.all([fetch('/api/dashboard'), fetch('/api/estoque')]);
       const imps    = await resImps.json();
       const estoque = await resEst.json();
+
+      renderizarPainel(imps);
 
       document.getElementById('deviceBody').innerHTML = imps.map(p => `
         <tr>
@@ -505,6 +650,7 @@
     } catch(e) { console.error('Erro:', e); showToast('Erro ao carregar dados', true); }
   }
 
+  // ── Estoque ────────────────────────────────────────────────────────────────────
   async function mudarQtd(mod, insumo, delta) {
     if (!unlockedGroups[mod]) { showToast('Desbloqueie o estoque primeiro 🔒', true); return; }
     const grupo = [...document.querySelectorAll('.model-group')].find(g => g.getAttribute('data-modelo') === mod);
@@ -538,6 +684,7 @@
     });
   }
 
+  // ── CRUD impressoras ──────────────────────────────────────────────────────────
   function del(id) {
     confirmar('Remover impressora', 'Esta ação não pode ser desfeita.', async () => {
       await fetch(`/api/impressoras/${id}`, { method: 'DELETE' });
@@ -559,8 +706,7 @@
     }
 
     const btn = form.querySelector('.btn-add');
-    btn.disabled = true;
-    btn.textContent = 'Registrando...';
+    btn.disabled = true; btn.textContent = 'Registrando...';
     try {
       const res = await fetch('/api/impressoras', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -573,7 +719,7 @@
   };
 
   document.querySelectorAll('#formAdd input, #formAdd select').forEach(el => {
-    el.addEventListener('input', function() { this.classList.remove('is-invalid'); });
+    el.addEventListener('input',  function() { this.classList.remove('is-invalid'); });
     el.addEventListener('change', function() { this.classList.remove('is-invalid'); });
   });
 
@@ -630,6 +776,7 @@
     } catch(e) { showToast('Erro: ' + e.message, true); }
   }
 
+  // ── Click fora fecha modais ───────────────────────────────────────────────────
   ['modalOverlay','modalPrint','modalSenha','modalConfirm'].forEach(id => {
     document.getElementById(id).addEventListener('click', function(e) {
       if (e.target === this) {

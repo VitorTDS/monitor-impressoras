@@ -63,12 +63,28 @@ setInterval(() => {
     }
 }, 60_000).unref();
 
-// ── Cache do dashboard (30 s) ─────────────────────────────────────────────────
-let dashCache   = null;
-let dashCacheAt = 0;
-const DASH_TTL  = 30_000;
+// ── Cache do dashboard ────────────────────────────────────────────────────────
+let dashCache     = null;
+let dashCacheAt   = 0;
+let dashRefreshing = false;
+const DASH_TTL    = 60_000;
 
 function invalidarCacheDash() { dashCacheAt = 0; }
+
+async function refreshDashCache(rows) {
+    if (dashRefreshing) return;
+    dashRefreshing = true;
+    try {
+        const resultados = await Promise.all(rows.map(async (imp) => {
+            const snmpData = await obterDadosSNMP(imp.ip, imp.comunidade);
+            return { ...imp, material: imp.material || 'Toner', tipo: imp.tipo || 'Colorido', ...snmpData };
+        }));
+        dashCache   = resultados;
+        dashCacheAt = Date.now();
+    } finally {
+        dashRefreshing = false;
+    }
+}
 
 // ── Credenciais de admin ──────────────────────────────────────────────────────
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -225,7 +241,7 @@ app.use(express.static('public'));
 // ── SNMP ──────────────────────────────────────────────────────────────────────
 function obterDadosSNMP(ip, comunidade) {
     return new Promise((resolve) => {
-        const session = snmp.createSession(ip, comunidade || 'public', { timeout: 2000, retries: 1 });
+        const session = snmp.createSession(ip, comunidade || 'public', { timeout: 1500, retries: 0 });
         const oids = [
             '1.3.6.1.2.1.43.11.1.1.8.1.1', '1.3.6.1.2.1.43.11.1.1.9.1.1',
             '1.3.6.1.2.1.43.11.1.1.8.1.2', '1.3.6.1.2.1.43.11.1.1.9.1.2',
@@ -256,25 +272,26 @@ function obterDadosSNMP(ip, comunidade) {
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 
 app.get('/api/dashboard', (req, res, next) => {
-    if (dashCache && Date.now() - dashCacheAt < DASH_TTL) return res.json(dashCache);
-
     db.all('SELECT id, nome, ip, modelo, localizacao, comunidade, tipo, material FROM impressoras', [], async (err, rows) => {
         if (err) { console.error(err); return next(err); }
+
+        const cacheValido = dashCache && Date.now() - dashCacheAt < DASH_TTL;
+
+        if (cacheValido) {
+            res.json(dashCache);
+            if (Date.now() - dashCacheAt > DASH_TTL / 2) refreshDashCache(rows);
+            return;
+        }
+
+        if (dashCache) {
+            res.json(dashCache);
+            refreshDashCache(rows);
+            return;
+        }
+
         try {
-            const promessas = rows.map(async (imp) => {
-                const snmpData = await obterDadosSNMP(imp.ip, imp.comunidade);
-                return {
-                    ...imp,
-                    material: imp.material || 'Toner',
-                    tipo: imp.tipo || 'Colorido',
-                    online: snmpData.online,
-                    suprimentos: snmpData.suprimentos
-                };
-            });
-            const resultados = await Promise.all(promessas);
-            dashCache   = resultados;
-            dashCacheAt = Date.now();
-            res.json(resultados);
+            await refreshDashCache(rows);
+            res.json(dashCache || []);
         } catch (e) {
             console.error(e);
             next(e);

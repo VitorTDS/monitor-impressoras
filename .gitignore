@@ -3,3 +3,4 @@ banco.db
 .claude/
 *.log
 ecosystem.config.js
+.env

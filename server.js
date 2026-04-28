@@ -204,12 +204,15 @@ dbReady.then(() => {
 });
 
 // ── Middleware stack (ordem: helmet → cors → rate limit → body → static) ─────
+// useDefaults:false evita que o Helmet readicione upgrade-insecure-requests
+// (sistema interno HTTP — sem TLS)
 const cspDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
 delete cspDirectives['upgrade-insecure-requests'];
 
 app.use(helmet({
     hsts: false,
     contentSecurityPolicy: {
+        useDefaults: false,
         directives: {
             ...cspDirectives,
             'script-src':      ["'self'", "'unsafe-inline'"],

@@ -11,8 +11,17 @@
     .lupd { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--mt); margin-bottom: 20px; }
     .dot  { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s 5 forwards; flex-shrink: 0; }
 
-    .alert-global { margin-bottom: 16px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--no); }
-    .alert-global .ico { font-size: 22px; flex-shrink: 0; }
+    .alert-global { margin-bottom: 16px; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25); border-radius: 10px; padding: 14px 18px; font-size: 13px; color: var(--no); }
+    .alert-global .alert-title { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 10px; }
+    .alert-global .ico { font-size: 20px; flex-shrink: 0; }
+    .alert-items { display: flex; flex-direction: column; gap: 6px; }
+    .alert-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.18); border-radius: 8px; padding: 9px 14px; cursor: pointer; transition: background .15s, border-color .15s; text-align: left; font-family: inherit; color: inherit; width: 100%; }
+    .alert-item:hover { background: rgba(239,68,68,.15); border-color: rgba(239,68,68,.35); }
+    .alert-item-setor { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .alert-item-detalhe { font-size: 11px; color: var(--mt); margin-top: 2px; }
+    .alert-item-right { font-size: 11px; color: var(--no); white-space: nowrap; text-align: right; }
+    .card.highlight { animation: highlight-pulse 1.6s ease; }
+    @keyframes highlight-pulse { 0%,100% { box-shadow: none; } 20%,60% { box-shadow: 0 0 0 3px rgba(239,68,68,.5), 0 4px 20px rgba(239,68,68,.2); } }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
 
@@ -103,8 +112,8 @@
     <div class="lupd"><div class="dot" aria-hidden="true"></div><span id="lupd">Aguardando...</span></div>
 
     <div class="alert-global" id="alertbox" style="display:none" role="alert">
-      <div class="ico" aria-hidden="true">⚠️</div>
-      <div id="alertmsg"></div>
+      <div class="alert-title"><span class="ico" aria-hidden="true">⚠️</span><span id="alertmsg"></span></div>
+      <div class="alert-items" id="alertitems"></div>
     </div>
 
     <div class="grid" id="grid"></div>
@@ -170,21 +179,24 @@
     const criticos = dadosCache.filter(p => p.online && tBaixa(p.suprimentos));
     const ab = document.getElementById('alertbox');
     const am = document.getElementById('alertmsg');
+    const ai = document.getElementById('alertitems');
     if (criticos.length) {
-      ab.style.display = 'flex';
-      const strong = document.createElement('strong');
-      strong.textContent = criticos.length + ' impressora(s) com tinta crítica: ';
-      const detalhes = criticos.map(p => {
-        const cores = (p.suprimentos || [])
+      ab.style.display = 'block';
+      am.textContent = criticos.length + ' impressora(s) com tinta crítica — clique para localizar';
+      ai.innerHTML = criticos.map(p => {
+        const coresBaixas = (p.suprimentos || [])
           .filter(s => s.percentual <= 15)
           .map(s => `${s.nome} ${s.percentual}%`)
-          .join(', ');
-        return p.nome + (cores ? ` (${cores})` : '');
-      }).join(' · ');
-      const nomes = document.createTextNode(detalhes + ' — verificar reposição com urgência.');
-      am.innerHTML = '';
-      am.appendChild(strong);
-      am.appendChild(nomes);
+          .join(' · ');
+        const setor = p.localizacao || p.ip;
+        return `<button class="alert-item" onclick="irParaCard(${p.id})">
+          <div>
+            <div class="alert-item-setor">📍 ${esc(setor)}</div>
+            <div class="alert-item-detalhe">${esc(p.nome)} · ${esc(p.ip)}</div>
+          </div>
+          <div class="alert-item-right">⚠️ ${esc(coresBaixas)}</div>
+        </button>`;
+      }).join('');
     } else {
       ab.style.display = 'none';
     }
@@ -198,7 +210,7 @@
       const sup   = Array.isArray(p.suprimentos) ? p.suprimentos : [];
       const baixa = tBaixa(sup);
       return `
-        <div class="card ${baixa ? 'crit' : ''}">
+        <div class="card ${baixa ? 'crit' : ''}" id="card-${p.id}">
           <div class="ctop">
             <div>
               <div class="pname">${esc(p.nome)}</div>
@@ -229,6 +241,15 @@
           </div>
         </div>`;
     }).join('');
+  }
+
+  function irParaCard(id) {
+    const card = document.getElementById('card-' + id);
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.remove('highlight');
+    void card.offsetWidth;
+    card.classList.add('highlight');
   }
 
   function iniciarTimer() {

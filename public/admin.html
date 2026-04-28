@@ -18,10 +18,23 @@
     .card-head { padding: 14px 20px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
     .card-head h4 { font-size: 14px; font-weight: 800; }
     .card-head a  { font-size: 11px; color: var(--accent); font-weight: 600; text-decoration: none; }
-    .alert-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--bd); gap: 12px; }
+    .alert-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--bd); gap: 12px; cursor: pointer; transition: background .15s; }
     .alert-row:last-child { border-bottom: none; }
+    .alert-row:hover { background: rgba(251,102,2,.04); }
     .alert-info strong { font-size: 13px; display: block; }
     .alert-info span   { font-size: 11px; color: var(--mt); margin-top: 2px; display: block; }
+    /* Modal de detalhe do alerta */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity .2s; padding: 16px; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-alerta { background: var(--card); border-radius: 16px; padding: 28px; width: 100%; max-width: 420px; transform: translateY(14px); transition: transform .2s; box-shadow: 0 20px 60px rgba(0,0,0,.14); }
+    .modal-overlay.open .modal-alerta { transform: translateY(0); }
+    .modal-setor { font-size: 22px; font-weight: 900; color: var(--tx); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .modal-ip    { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 16px; font-family: monospace; }
+    .modal-problema { background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; }
+    .modal-problema-titulo { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--no); letter-spacing: .5px; margin-bottom: 8px; }
+    .modal-problema-itens { font-size: 13px; color: var(--tx); line-height: 1.7; }
+    .modal-btn-fechar { width: 100%; background: var(--accent); color: #fff; border: none; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: filter .2s; }
+    .modal-btn-fechar:hover { filter: brightness(1.08); }
     .alert-ok  { padding: 24px; text-align: center; color: var(--ok); font-size: 13px; }
     .dev-row   { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--bd); }
     .dev-row:last-child { border-bottom: none; }
@@ -34,6 +47,18 @@
 <body>
 <script src="admin-auth.js"></script>
 <script>initTheme();</script>
+
+<div class="modal-overlay" id="modalAlerta" onclick="if(event.target===this)fecharModalAlerta()">
+  <div class="modal-alerta">
+    <div class="modal-setor" id="malSetor"></div>
+    <div class="modal-ip"    id="malIp"></div>
+    <div class="modal-problema">
+      <div class="modal-problema-titulo">Problema identificado</div>
+      <div class="modal-problema-itens" id="malProblema"></div>
+    </div>
+    <button class="modal-btn-fechar" onclick="fecharModalAlerta()">Fechar</button>
+  </div>
+</div>
 
 <aside class="sidebar">
   <div class="sb-brand">
@@ -104,6 +129,18 @@
   const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
   const tBaixa = p => (p.suprimentos || []).some(s => s.percentual <= 15);
 
+  function abrirAlerta(el) {
+    const d = JSON.parse(decodeURIComponent(el.dataset.alerta));
+    document.getElementById('malSetor').textContent    = '📍 ' + (d.localizacao || d.ip);
+    document.getElementById('malIp').textContent       = d.nome + ' · ' + d.ip;
+    document.getElementById('malProblema').textContent = d.motivos.join('\n');
+    document.getElementById('modalAlerta').classList.add('open');
+  }
+
+  function fecharModalAlerta() {
+    document.getElementById('modalAlerta').classList.remove('open');
+  }
+
   async function carregar() {
     try {
       const [resDash, resImps] = await Promise.all([
@@ -130,10 +167,17 @@
             const cores = (p.suprimentos||[]).filter(s=>s.percentual<=15).map(s=>s.nome+' '+s.percentual+'%').join(', ');
             motivos.push('Tinta crítica: ' + cores);
           }
-          return `<div class="alert-row">
+          const dadosAlerta = encodeURIComponent(JSON.stringify({
+            nome: p.nome || p.modelo,
+            ip: p.ip,
+            localizacao: p.localizacao || '',
+            motivos,
+            online: p.online
+          }));
+          return `<div class="alert-row" onclick="abrirAlerta(this)" data-alerta="${dadosAlerta}" title="Clique para ver detalhes do setor">
             <div class="alert-info">
               <strong>${esc(p.nome || p.modelo)}</strong>
-              <span>${esc(p.ip)}${p.localizacao ? ' · '+esc(p.localizacao) : ''}</span>
+              <span>${esc(p.ip)}${p.localizacao ? ' · 📍 '+esc(p.localizacao) : ''}</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
               <span style="font-size:11px;color:var(--mt)">${esc(motivos.join(' / '))}</span>

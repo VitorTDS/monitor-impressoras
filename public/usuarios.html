@@ -9,13 +9,15 @@
   <style>
     .section-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
     .form-card { background: var(--card); border-radius: 14px; padding: 24px; max-width: 560px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-    @media (max-width: 640px) {
-      .form-card { padding: 18px; }
+    @media (max-width: 768px) {
+      .form-card { padding: 16px; }
       .table-wrap table { font-size: 12px; }
-      .table-wrap th:nth-child(3),
-      .table-wrap td:nth-child(3) { display: none; }
       .table-wrap th:nth-child(4),
       .table-wrap td:nth-child(4) { display: none; }
+    }
+    @media (max-width: 480px) {
+      .table-wrap th:nth-child(3),
+      .table-wrap td:nth-child(3) { display: none; }
     }
   </style>
 </head>

@@ -94,13 +94,60 @@ code { background: rgba(0,0,0,.05); padding: 2px 6px; border-radius: 4px; font-f
 [data-theme="dark"] .loader { background: rgba(15,23,42,.85); }
 
 /* ── Responsivo ─────────────────────────────────────────────────────────────── */
-@media (max-width: 900px) { .main-content { padding: 20px; } }
-@media (max-width: 640px) {
-  .sidebar { display: none; }
+
+/* Overlay e botão hamburger (injetados via JS por initMobileNav) */
+.sb-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 99; display: none; cursor: pointer;
+}
+.sb-overlay.show { display: block; }
+
+.sb-toggle {
+  display: none;
+  background: none; border: none;
+  font-size: 22px; line-height: 1;
+  padding: 6px 10px; margin-right: 4px;
+  cursor: pointer; color: var(--tx);
+  border-radius: 6px; flex-shrink: 0;
+  transition: background .15s;
+}
+.sb-toggle:hover { background: var(--bd); }
+
+@media (max-width: 900px) {
+  .main-content { padding: 20px; }
+}
+
+@media (max-width: 768px) {
+  /* Sidebar desliza a partir da esquerda */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 101;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  .sb-toggle { display: block; }
   .main-wrap { margin-left: 0; }
+  .main-content { padding: 14px; }
+  .main-topbar { padding: 10px 14px; gap: 8px; }
+  .main-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .main-clock { display: none; }
+
+  /* Formulários */
   .fgrid { grid-template-columns: 1fr; }
-  .table-wrap { overflow-x: auto; }
+
+  /* Tabelas com scroll horizontal */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { white-space: nowrap; }
+
+  /* Modais em coluna no mobile */
+  .modal { margin: 0; border-radius: 14px 14px 0 0; position: fixed; bottom: 0; left: 0; right: 0; max-width: 100%; transform: translateY(20px); }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-overlay { align-items: flex-end; padding: 0; }
   .modal-actions { flex-direction: column; }
   .btn-save, .btn-cancel { width: 100%; }
+
+  /* Toast centralizado */
+  .toast { right: 12px; left: 12px; text-align: center; }
 }

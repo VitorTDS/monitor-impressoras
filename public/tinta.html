@@ -75,7 +75,7 @@
     .btn-atualizar:disabled { opacity: .5; cursor: not-allowed; }
     .spin { display: inline-block; animation: spin .8s linear infinite; }
 
-    .filter-bar { display: flex; gap: 6px; margin-bottom: 18px; }
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
     .btn-filtro { background: var(--card); border: 1.5px solid var(--bd); color: var(--mt); padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
     .btn-filtro:hover { border-color: var(--accent); color: var(--accent); }
     .btn-filtro.active { background: var(--accent); border-color: var(--accent); color: #fff; }
@@ -83,7 +83,13 @@
     .btn-filtro.active-no { background: var(--no); border-color: var(--no); color: #fff; }
     .filtro-vazio { grid-column: 1/-1; text-align: center; padding: 40px 0; color: var(--mt); font-size: 13px; }
 
-    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .ctop { flex-wrap: wrap; gap: 8px; } }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      .ctop { flex-wrap: wrap; gap: 8px; }
+      .alert-item { flex-wrap: wrap; }
+      .alert-item-right { text-align: left; }
+      .lupd { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>

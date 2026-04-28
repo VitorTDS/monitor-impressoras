@@ -18,8 +18,9 @@
     .back-link { display: block; margin-top: 16px; font-size: 12px; color: var(--mt); text-decoration: none; transition: color .2s; }
     .back-link:hover { color: var(--accent); }
 
-    .ip-row { display: flex; gap: 8px; margin-bottom: 16px; }
-    .ip-row input { flex: 1; margin-bottom: 0 !important; }
+    .ip-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .ip-row input { flex: 1; min-width: 160px; margin-bottom: 0 !important; }
+    .btn-buscar { min-height: 44px; }
     .btn-buscar { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity .2s; }
     .btn-buscar:hover { opacity: .85; }
     .btn-buscar:disabled { opacity: .5; cursor: not-allowed; }

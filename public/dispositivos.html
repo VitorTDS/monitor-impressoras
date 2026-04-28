@@ -12,6 +12,10 @@
     .search-input:focus { outline: none; border-color: var(--accent); }
     .btn-new { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: filter .2s; margin-left: auto; }
     .btn-new:hover { filter: brightness(1.08); }
+    @media (max-width: 768px) {
+      .search-input { width: 100%; }
+      .btn-new { margin-left: 0; width: 100%; justify-content: center; }
+    }
     .btn-print { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.2); color: var(--ok); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: inherit; }
     .btn-print:hover { background: var(--ok); color: #fff; }
     .btn-tinta { background: rgba(251,102,2,.08); border: 1px solid rgba(251,102,2,.25); color: var(--accent); padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; text-decoration: none; transition: all .2s; }

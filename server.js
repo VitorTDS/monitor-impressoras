@@ -269,6 +269,45 @@ function obterDadosSNMP(ip, comunidade) {
     });
 }
 
+// ── Descoberta de dispositivo via SNMP ────────────────────────────────────────
+const FABRICANTES = ['Canon', 'HP', 'Epson', 'Brother', 'Kyocera'];
+
+function descobrirImpressora(ip) {
+    return new Promise((resolve) => {
+        const session = snmp.createSession(ip, 'public', { timeout: 2000, retries: 0 });
+        const oids = [
+            '1.3.6.1.2.1.1.1.0',            // sysDescr
+            '1.3.6.1.2.1.25.3.2.1.3.1',     // hrDeviceDescr
+            '1.3.6.1.2.1.43.11.1.1.8.1.2',  // C max
+            '1.3.6.1.2.1.43.11.1.1.9.1.2',  // C cur
+            '1.3.6.1.2.1.43.11.1.1.8.1.3',  // M max
+            '1.3.6.1.2.1.43.11.1.1.9.1.3',  // M cur
+            '1.3.6.1.2.1.43.11.1.1.8.1.4',  // Y max
+            '1.3.6.1.2.1.43.11.1.1.9.1.4',  // Y cur
+        ];
+        session.get(oids, (error, varbinds) => {
+            session.close();
+            if (error) {
+                return resolve({ online: false, fabricante: '', modelo: '', tipo: 'Colorido', material: 'Toner', comunidade: 'public' });
+            }
+            const toStr = (vb) => Buffer.isBuffer(vb?.value) ? vb.value.toString('utf8') : String(vb?.value || '');
+            const sysDescr      = toStr(varbinds[0]);
+            const hrDeviceDescr = toStr(varbinds[1]);
+            const texto         = (sysDescr + ' ' + hrDeviceDescr).toLowerCase();
+
+            const fabricante = FABRICANTES.find(f => texto.includes(f.toLowerCase())) || '';
+            const modelo     = hrDeviceDescr.trim() || sysDescr.trim();
+            const cMax = Number(varbinds[2]?.value) || 0;
+            const mMax = Number(varbinds[4]?.value) || 0;
+            const yMax = Number(varbinds[6]?.value) || 0;
+            const tipo     = (cMax > 0 || mMax > 0 || yMax > 0) ? 'Colorido' : 'Mono';
+            const material = /laser|toner/i.test(sysDescr + hrDeviceDescr) ? 'Toner' : 'Tinta';
+
+            resolve({ online: true, fabricante, modelo, tipo, material, comunidade: 'public' });
+        });
+    });
+}
+
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 
 app.get('/api/dashboard', (req, res, next) => {
@@ -594,6 +633,16 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
             )
         );
     });
+});
+
+app.get('/api/descobrir', async (req, res, next) => {
+    const ip = String(req.query.ip || '').trim();
+    if (!IPV4_RE.test(ip)) return res.status(400).json({ erro: 'IP inválido' });
+    try {
+        res.json(await descobrirImpressora(ip));
+    } catch (e) {
+        next(e);
+    }
 });
 
 // ── Error handler centralizado (deve ser o último middleware) ─────────────────

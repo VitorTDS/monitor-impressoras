@@ -1,5 +1,5 @@
 node_modules/
-banco.db
+*.db
 .claude/
 *.log
 ecosystem.config.js

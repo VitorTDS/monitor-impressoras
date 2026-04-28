@@ -15,6 +15,7 @@ const { app, db, dbReady } = require('../server');
 
 beforeAll(() => dbReady);
 afterAll(() => new Promise(resolve => db.close(resolve)));
+afterEach(() => { mockSnmpCallback = (_oids, cb) => cb(new Error('timeout')); });
 
 describe('GET /api/descobrir', () => {
     it('deve retornar 400 quando ip ausente', async () => {
@@ -26,6 +27,7 @@ describe('GET /api/descobrir', () => {
     it('deve retornar 400 quando ip inválido', async () => {
         const res = await request(app).get('/api/descobrir?ip=999.0.0.1');
         expect(res.status).toBe(400);
+        expect(res.body.erro).toMatch(/IP/i);
     });
 
     it('deve retornar online:false e campos vazios quando SNMP não responde', async () => {

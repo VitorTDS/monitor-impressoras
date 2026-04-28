@@ -7,7 +7,8 @@ jest.mock('net-snmp', () => ({
     createSession: () => ({
         get: (oids, cb) => mockSnmpCallback(oids, cb),
         close: () => {}
-    })
+    }),
+    isVarbindError: () => false
 }));
 
 const request  = require('supertest');

@@ -234,6 +234,13 @@ const limiterAuth = rateLimit({
     skipSuccessfulRequests: true
 });
 
+const limiterDescoberta = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 app.use(limiterGlobal);
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static('public'));
@@ -290,7 +297,10 @@ function descobrirImpressora(ip) {
             if (error) {
                 return resolve({ online: false, fabricante: '', modelo: '', tipo: 'Colorido', material: 'Toner', comunidade: 'public' });
             }
-            const toStr = (vb) => Buffer.isBuffer(vb?.value) ? vb.value.toString('utf8') : String(vb?.value || '');
+            const toStr = (vb) => {
+                if (!vb || snmp.isVarbindError(vb)) return '';
+                return Buffer.isBuffer(vb.value) ? vb.value.toString('utf8') : String(vb.value ?? '');
+            };
             const sysDescr      = toStr(varbinds[0]);
             const hrDeviceDescr = toStr(varbinds[1]);
             const texto         = (sysDescr + ' ' + hrDeviceDescr).toLowerCase();
@@ -635,7 +645,7 @@ app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
     });
 });
 
-app.get('/api/descobrir', async (req, res, next) => {
+app.get('/api/descobrir', limiterDescoberta, async (req, res, next) => {
     const ip = String(req.query.ip || '').trim();
     if (!IPV4_RE.test(ip)) return res.status(400).json({ erro: 'IP inválido' });
     try {

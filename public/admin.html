@@ -46,7 +46,7 @@
 </head>
 <body>
 <script src="admin-auth.js"></script>
-<script>initTheme();</script>
+<script>requireAuth(); initTheme();</script>
 
 <div class="modal-overlay" id="modalAlerta" onclick="if(event.target===this)fecharModalAlerta()">
   <div class="modal-alerta">

@@ -136,8 +136,8 @@
   <div class="body">
     <div class="card">
       <div class="card-header">
-        <h1>Bem-vindo</h1>
-        <p>Entre com suas credenciais para acessar o sistema</p>
+        <h1 id="card-title">Bem-vindo</h1>
+        <p id="card-subtitle">Entre com suas credenciais para acessar o sistema</p>
       </div>
       <div class="card-body">
         <div id="screen-login">
@@ -154,6 +154,24 @@
             <button type="submit" class="btn-primary" id="btn-entrar">Entrar no sistema →</button>
           </form>
         </div>
+
+        <div id="screen-trocar-senha" style="display:none">
+          <div style="background:#fff7ed;border-left:3px solid #f59e0b;padding:12px 14px;border-radius:6px;margin-bottom:20px;font-size:13px;color:#92400e;line-height:1.5">
+            Por segurança, crie uma senha pessoal antes de continuar.
+          </div>
+          <form onsubmit="doTrocarSenha(); return false;">
+            <div class="form-group">
+              <label>Nova senha</label>
+              <input type="password" id="nova-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label>Confirmar nova senha</label>
+              <input type="password" id="nova-pass-confirm" placeholder="Repita a nova senha" autocomplete="new-password" />
+            </div>
+            <div class="msg" id="trocar-msg"></div>
+            <button type="submit" class="btn-primary" id="btn-trocar">Definir senha e entrar →</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -163,6 +181,8 @@
   function getToken() {
     try { return JSON.parse(sessionStorage.getItem('ic_token') || 'null'); } catch { return null; }
   }
+
+  let _tempToken = null;
 
   /* ─── Se já está logado, redireciona ─── */
   (function() {
@@ -174,8 +194,8 @@
   })();
 
   /* ─── Feedback visual ─── */
-  function showMsg(text, type) {
-    const el = document.getElementById('login-msg');
+  function showMsg(elId, text, type) {
+    const el = document.getElementById(elId);
     el.textContent = text;
     el.className = 'msg ' + type;
   }
@@ -184,9 +204,9 @@
   async function doLogin() {
     const usuario = document.getElementById('login-user').value.trim();
     const senha   = document.getElementById('login-pass').value;
-    showMsg('', '');
+    showMsg('login-msg', '', '');
 
-    if (!usuario || !senha) { showMsg('Preencha usuário e senha.', 'error'); return; }
+    if (!usuario || !senha) { showMsg('login-msg', 'Preencha usuário e senha.', 'error'); return; }
 
     const btn = document.getElementById('btn-entrar');
     btn.disabled = true;
@@ -201,22 +221,73 @@
       const data = await res.json();
 
       if (!res.ok || !data.ok) {
-        showMsg(data.erro || 'Usuário ou senha incorretos.', 'error');
+        showMsg('login-msg', data.erro || 'Usuário ou senha incorretos.', 'error');
         btn.disabled = false;
         btn.textContent = 'Entrar no sistema →';
         return;
       }
 
+      if (data.trocar_senha) {
+        _tempToken = data.temp_token;
+        document.getElementById('screen-login').style.display = 'none';
+        document.getElementById('screen-trocar-senha').style.display = 'block';
+        document.getElementById('card-title').textContent = 'Criar nova senha';
+        document.getElementById('card-subtitle').textContent = 'Defina uma senha pessoal para continuar.';
+        document.getElementById('nova-pass').focus();
+        return;
+      }
+
       sessionStorage.setItem('ic_token', JSON.stringify({ token: data.token, usuario: data.usuario }));
-      showMsg('✓ Acesso autorizado! Redirecionando...', 'success');
+      showMsg('login-msg', '✓ Acesso autorizado! Redirecionando...', 'success');
       setTimeout(() => {
         document.getElementById('loadingOverlay').classList.add('show');
         setTimeout(() => { window.location.href = 'admin.html'; }, 400);
       }, 700);
     } catch {
-      showMsg('Erro de conexão. Verifique o servidor.', 'error');
+      showMsg('login-msg', 'Erro de conexão. Verifique o servidor.', 'error');
       btn.disabled = false;
       btn.textContent = 'Entrar no sistema →';
+    }
+  }
+
+  /* ─── Troca de senha obrigatória ─── */
+  async function doTrocarSenha() {
+    const nova = document.getElementById('nova-pass').value;
+    const conf = document.getElementById('nova-pass-confirm').value;
+    showMsg('trocar-msg', '', '');
+
+    if (nova.length < 6) { showMsg('trocar-msg', 'Senha deve ter ao menos 6 caracteres.', 'error'); return; }
+    if (nova !== conf)   { showMsg('trocar-msg', 'As senhas não coincidem.', 'error'); return; }
+
+    const btn = document.getElementById('btn-trocar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      const res  = await fetch('/api/auth/trocar-senha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temp_token: _tempToken, nova_senha: nova })
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        showMsg('trocar-msg', data.erro || 'Erro ao trocar senha.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Definir senha e entrar →';
+        return;
+      }
+
+      sessionStorage.setItem('ic_token', JSON.stringify({ token: data.token, usuario: data.usuario }));
+      showMsg('trocar-msg', '✓ Senha definida! Redirecionando...', 'success');
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').classList.add('show');
+        setTimeout(() => { window.location.href = 'admin.html'; }, 400);
+      }, 700);
+    } catch {
+      showMsg('trocar-msg', 'Erro de conexão. Verifique o servidor.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Definir senha e entrar →';
     }
   }
 

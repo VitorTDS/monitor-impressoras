@@ -117,6 +117,22 @@ setInterval(() => {
     }
 }, 60_000).unref();
 
+// Tokens temporários para troca de senha obrigatória (TTL 15 min)
+const tempTrocarSenhaTokens = new Map(); // token → { userId, exp }
+
+function gerarTempToken(userId) {
+    const token = crypto.randomBytes(24).toString('hex');
+    tempTrocarSenhaTokens.set(token, { userId, exp: Date.now() + 15 * 60 * 1000 });
+    return token;
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, { exp }] of tempTrocarSenhaTokens) {
+        if (now > exp) tempTrocarSenhaTokens.delete(token);
+    }
+}, 60_000).unref();
+
 // ── Hashing de senhas (scrypt) ────────────────────────────────────────────────
 function hashSenha(senha) {
     return new Promise((resolve, reject) => {
@@ -181,9 +197,11 @@ const dbReady = new Promise(resolve => {
             nome TEXT NOT NULL,
             usuario TEXT NOT NULL UNIQUE,
             senha_hash TEXT NOT NULL,
+            trocar_senha INTEGER DEFAULT 0,
             ativo INTEGER DEFAULT 1,
             criado_em TEXT DEFAULT (datetime('now'))
         )`);
+        db.run(`ALTER TABLE usuarios ADD COLUMN trocar_senha INTEGER DEFAULT 0`, () => {});
         db.run('SELECT 1', resolve);
     });
 });
@@ -517,11 +535,39 @@ app.post('/api/auth/login', limiterAuth, (req, res) => {
         try {
             const ok = await verificarSenha(senha, user.senha_hash);
             if (!ok) return setTimeout(() => res.status(401).json({ ok: false, erro: 'Usuário ou senha incorretos.' }), 800);
+            if (user.trocar_senha) {
+                return res.json({ ok: true, trocar_senha: true, temp_token: gerarTempToken(user.id), usuario: user.usuario, nome: user.nome });
+            }
             res.json({ ok: true, token: gerarTokenAdmin(), usuario: user.usuario, nome: user.nome });
         } catch {
             res.status(500).json({ ok: false, erro: 'Erro interno.' });
         }
     });
+});
+
+app.post('/api/auth/trocar-senha', async (req, res) => {
+    const { temp_token, nova_senha } = req.body;
+    if (!temp_token || !nova_senha) return res.status(400).json({ ok: false, erro: 'Dados incompletos.' });
+    if (nova_senha.length < 6) return res.status(400).json({ ok: false, erro: 'Senha deve ter ao menos 6 caracteres.' });
+
+    const entry = tempTrocarSenhaTokens.get(temp_token);
+    if (!entry || Date.now() > entry.exp) return res.status(401).json({ ok: false, erro: 'Sessão expirada. Faça login novamente.' });
+
+    try {
+        const hash = await hashSenha(nova_senha);
+        db.run(
+            `UPDATE usuarios SET senha_hash = ?, trocar_senha = 0 WHERE id = ?`,
+            [hash, entry.userId],
+            function(err) {
+                if (err || this.changes === 0) return res.status(500).json({ ok: false, erro: 'Erro ao atualizar senha.' });
+                tempTrocarSenhaTokens.delete(temp_token);
+                db.get('SELECT usuario, nome FROM usuarios WHERE id = ?', [entry.userId], (e, user) => {
+                    if (e || !user) return res.status(500).json({ ok: false, erro: 'Erro interno.' });
+                    res.json({ ok: true, token: gerarTokenAdmin(), usuario: user.usuario, nome: user.nome });
+                });
+            }
+        );
+    } catch { res.status(500).json({ ok: false, erro: 'Erro interno.' }); }
 });
 
 app.get('/api/auth/verify', (req, res) => {
@@ -547,7 +593,7 @@ app.post('/api/usuarios', async (req, res) => {
     try {
         const hash = await hashSenha(senha);
         db.run(
-            `INSERT INTO usuarios (nome, usuario, senha_hash) VALUES (?, ?, ?)`,
+            `INSERT INTO usuarios (nome, usuario, senha_hash, trocar_senha) VALUES (?, ?, ?, 1)`,
             [nome.trim(), usuario.trim().toLowerCase(), hash],
             function(err) {
                 if (err) return res.status(409).json({ erro: 'Usuário já existe.' });

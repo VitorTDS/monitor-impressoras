@@ -17,6 +17,15 @@
     .form-msg.err { color: var(--no); }
     .back-link { display: block; margin-top: 16px; font-size: 12px; color: var(--mt); text-decoration: none; transition: color .2s; }
     .back-link:hover { color: var(--accent); }
+
+    .ip-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .ip-row input { flex: 1; margin-bottom: 0 !important; }
+    .btn-buscar { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 0 20px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity .2s; }
+    .btn-buscar:hover { opacity: .85; }
+    .btn-buscar:disabled { opacity: .5; cursor: not-allowed; }
+    .aviso-offline { background: #fff3cd; color: #856404; border: 1px solid #ffc107; border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px; }
+    #camposExtra { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
@@ -55,43 +64,68 @@
   <div class="form-card">
     <div class="form-card-head">
       <h2>➕ Nova Impressora</h2>
-      <p>Preencha os dados do equipamento para cadastrá-lo no sistema</p>
+      <p>Digite o IP do equipamento — as informações serão preenchidas automaticamente</p>
     </div>
     <div class="form-card-body">
       <form id="formAdd">
-        <div class="fgrid">
-          <div>
-            <label>Fabricante</label>
-            <select name="nome"><option>Canon</option><option>HP</option><option>Epson</option><option>Brother</option><option>Kyocera</option></select>
-          </div>
-          <div>
-            <label>Material do Suprimento</label>
-            <select name="material"><option value="Tinta">🖋️ Tinta</option><option value="Toner">⬛ Toner</option></select>
-          </div>
-        </div>
-        <label>Modelo / Setor</label>
-        <input type="text" name="modelo" placeholder="Ex: GX7010 - Financeiro" required>
+
         <label>IP / Endereço</label>
-        <input type="text" name="ip" placeholder="192.168.1.50">
-        <div class="fgrid">
-          <div>
-            <label>Localização</label>
-            <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
-          </div>
-          <div>
-            <label>Comunidade SNMP</label>
-            <input type="text" name="comunidade" placeholder="public" value="public">
-          </div>
+        <div class="ip-row">
+          <input type="text" name="ip" id="ipInput" placeholder="192.168.1.50" autocomplete="off">
+          <button type="button" id="buscarBtn" class="btn-buscar">🔍 Buscar</button>
         </div>
-        <label>Tipo de Suprimento</label>
-        <select name="tipo">
-          <option value="Colorido">Colorido (CMYK)</option>
-          <option value="Mono">Apenas Preto</option>
-          <option value="Manutencao">Caixa Manutenção</option>
-        </select>
-        <div class="form-msg" id="formMsg"></div>
-        <button type="submit" class="btn-add">+ Registrar Equipamento</button>
+
+        <div id="camposExtra" style="display:none;">
+          <div id="avisoOffline" class="aviso-offline" style="display:none;">
+            ⚠️ Dispositivo não respondeu — preencha os campos manualmente
+          </div>
+
+          <div class="fgrid">
+            <div>
+              <label>Fabricante</label>
+              <select name="nome">
+                <option value="Canon">Canon</option>
+                <option value="HP">HP</option>
+                <option value="Epson">Epson</option>
+                <option value="Brother">Brother</option>
+                <option value="Kyocera">Kyocera</option>
+              </select>
+            </div>
+            <div>
+              <label>Material do Suprimento</label>
+              <select name="material">
+                <option value="Tinta">🖋️ Tinta</option>
+                <option value="Toner">⬛ Toner</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Modelo</label>
+          <input type="text" name="modelo" placeholder="Ex: imageCLASS MF654Cdw">
+
+          <label>Localização</label>
+          <input type="text" name="localizacao" placeholder="Ex: 2º Andar - Sala 201">
+
+          <div class="fgrid">
+            <div>
+              <label>Tipo de Suprimento</label>
+              <select name="tipo">
+                <option value="Colorido">Colorido (CMYK)</option>
+                <option value="Mono">Apenas Preto</option>
+                <option value="Manutencao">Caixa Manutenção</option>
+              </select>
+            </div>
+            <div>
+              <label>Comunidade SNMP</label>
+              <input type="text" name="comunidade" placeholder="public" value="public">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-add">+ Registrar Equipamento</button>
+        </div>
+
       </form>
+      <div class="form-msg" id="formMsg"></div>
       <a href="dispositivos.html" class="back-link">← Ver todas as impressoras</a>
     </div>
   </div>
@@ -101,35 +135,101 @@
 <script>
   initUserLabel(); initClock(); setActiveNav();
 
+  const IPV4_RE = /^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+  const ipInput     = document.getElementById('ipInput');
+  const buscarBtn   = document.getElementById('buscarBtn');
+  const camposExtra = document.getElementById('camposExtra');
+  const avisoOffline = document.getElementById('avisoOffline');
+
   function showMsg(text, type) {
     const el = document.getElementById('formMsg');
-    el.textContent = text; el.className = 'form-msg ' + type;
+    el.textContent = text;
+    el.className = 'form-msg ' + (type || '');
   }
+
+  function setSelect(name, value) {
+    if (!value) return;
+    const sel = document.querySelector(`[name="${name}"]`);
+    if (!sel) return;
+    const opt = Array.from(sel.options).find(o =>
+      o.value.toLowerCase() === value.toLowerCase() ||
+      o.text.toLowerCase().includes(value.toLowerCase())
+    );
+    if (opt) sel.value = opt.value;
+  }
+
+  buscarBtn.addEventListener('click', async () => {
+    const ip = ipInput.value.trim();
+    if (!IPV4_RE.test(ip)) {
+      showMsg('IP inválido. Use o formato 192.168.1.50', 'err');
+      return;
+    }
+    buscarBtn.disabled = true;
+    buscarBtn.textContent = 'Buscando...';
+    ipInput.disabled = true;
+    showMsg('', '');
+
+    try {
+      const res = await fetch(`/api/descobrir?ip=${encodeURIComponent(ip)}`);
+      if (!res.ok) { showMsg('Erro ao consultar o dispositivo.', 'err'); return; }
+      const data = await res.json();
+
+      setSelect('nome',     data.fabricante);
+      setSelect('material', data.material);
+      setSelect('tipo',     data.tipo);
+      document.querySelector('[name="modelo"]').value    = data.modelo     || '';
+      document.querySelector('[name="comunidade"]').value = data.comunidade || 'public';
+
+      avisoOffline.style.display = data.online ? 'none' : 'block';
+      camposExtra.style.display  = 'block';
+      document.querySelector('[name="localizacao"]').focus();
+    } catch {
+      showMsg('Erro ao consultar o dispositivo. Tente novamente.', 'err');
+    } finally {
+      buscarBtn.disabled = false;
+      buscarBtn.textContent = '🔍 Buscar';
+      ipInput.disabled = false;
+    }
+  });
 
   document.getElementById('formAdd').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const data = Object.fromEntries(new FormData(form));
     form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-    const modeloEl = form.querySelector('[name="modelo"]');
+
     if (!data.modelo || !data.modelo.trim()) {
-      modeloEl.classList.add('is-invalid'); modeloEl.focus();
-      showMsg('O campo Modelo / Setor é obrigatório.', 'err'); return;
+      const modeloEl = form.querySelector('[name="modelo"]');
+      modeloEl.classList.add('is-invalid');
+      modeloEl.focus();
+      showMsg('O campo Modelo é obrigatório.', 'err');
+      return;
     }
+
     const btn = form.querySelector('.btn-add');
-    btn.disabled = true; btn.textContent = 'Registrando...'; showMsg('', '');
+    btn.disabled = true; btn.textContent = 'Registrando...';
+    showMsg('', '');
+
     try {
       const res = await fetch('/api/impressoras', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showMsg(err.erro || 'Erro ao cadastrar impressora.', 'err');
+        return;
+      }
       form.reset();
-      form.querySelector('[name="comunidade"]').value = 'public';
+      camposExtra.style.display = 'none';
       showMsg('✓ Impressora cadastrada com sucesso!', 'ok');
       setTimeout(() => showMsg('', ''), 4000);
-    } catch { showMsg('Erro ao cadastrar impressora. Tente novamente.', 'err'); }
-    finally { btn.disabled = false; btn.textContent = '+ Registrar Equipamento'; }
+    } catch {
+      showMsg('Erro ao cadastrar impressora. Tente novamente.', 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = '+ Registrar Equipamento';
+    }
   });
 
   document.querySelectorAll('#formAdd input, #formAdd select').forEach(el => {

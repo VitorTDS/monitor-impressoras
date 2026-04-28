@@ -246,6 +246,53 @@ app.use(express.json({ limit: '100kb' }));
 app.use(express.static('public'));
 
 // ── SNMP ──────────────────────────────────────────────────────────────────────
+
+// Fallback Brother: OID proprietário com formato TLV binário
+// Chaves 0x81-0x84 = níveis percentuais dos suprimentos 1-4
+function obterNiveisBrother(ip, comunidade) {
+    return new Promise((resolve) => {
+        const BROTHER_OID  = '1.3.6.1.4.1.2435.2.3.9.4.2.1.5.5.8.0';
+        const DESC_OIDS = [
+            '1.3.6.1.2.1.43.11.1.1.6.1.1',
+            '1.3.6.1.2.1.43.11.1.1.6.1.2',
+            '1.3.6.1.2.1.43.11.1.1.6.1.3',
+            '1.3.6.1.2.1.43.11.1.1.6.1.4',
+        ];
+        const NOME_MAP = { black: 'Preto', yellow: 'Amarelo', cyan: 'Ciano', magenta: 'Magenta' };
+        const session = snmp.createSession(ip, comunidade || 'public', { timeout: 2000, retries: 0 });
+        session.get([BROTHER_OID, ...DESC_OIDS], (err, vbs) => {
+            session.close();
+            if (err || !vbs[0] || snmp.isVarbindError(vbs[0])) { resolve([]); return; }
+            const buf = vbs[0].value;
+            if (!Buffer.isBuffer(buf)) { resolve([]); return; }
+            // Parsear TLV: key(1) + type(1) + len(1) + value(len bytes)
+            const percMap = {};
+            let pos = 0;
+            while (pos + 2 < buf.length) {
+                const key = buf[pos];
+                if (key === 0xFF) break;
+                const len = buf[pos + 2];
+                if (pos + 3 + len > buf.length) break;
+                if ((key & 0x80) && len === 4) {
+                    const val = buf.readInt32BE(pos + 3);
+                    if (val >= 0 && val <= 100) percMap[key & 0x7F] = val;
+                }
+                pos += 3 + len;
+            }
+            const suprimentos = [];
+            for (let i = 1; i <= 4; i++) {
+                if (!(i in percMap)) continue;
+                const descVb  = vbs[i];
+                if (!descVb || snmp.isVarbindError(descVb)) continue;
+                const descRaw = (Buffer.isBuffer(descVb.value) ? descVb.value.toString() : String(descVb.value)).toLowerCase();
+                const nome = Object.entries(NOME_MAP).find(([k]) => descRaw.includes(k))?.[1];
+                if (nome) suprimentos.push({ nome, percentual: percMap[i] });
+            }
+            resolve(suprimentos);
+        });
+    });
+}
+
 function obterDadosSNMP(ip, comunidade) {
     return new Promise((resolve) => {
         const session = snmp.createSession(ip, comunidade || 'public', { timeout: 1500, retries: 0 });
@@ -255,34 +302,35 @@ function obterDadosSNMP(ip, comunidade) {
             '1.3.6.1.2.1.43.11.1.1.8.1.3', '1.3.6.1.2.1.43.11.1.1.9.1.3',
             '1.3.6.1.2.1.43.11.1.1.8.1.4', '1.3.6.1.2.1.43.11.1.1.9.1.4'
         ];
-        session.get(oids, (error, varbinds) => {
-            if (error) {
-                resolve({ online: false, suprimentos: [] });
-            } else {
-                const cores = ['Preto', 'Ciano', 'Magenta', 'Amarelo'];
-                const suprimentos = [];
-                for (let i = 0; i < cores.length; i++) {
-                    const vbMax  = varbinds[i * 2];
-                    const vbAtual = varbinds[i * 2 + 1];
-                    if (!vbMax || !vbAtual) continue;
-                    if (snmp.isVarbindError(vbMax) || snmp.isVarbindError(vbAtual)) continue;
-                    const max   = vbMax.value;
-                    const atual = vbAtual.value;
-                    let perc;
-                    if (max > 0) {
-                        // caso normal: capacidade conhecida
-                        perc = Math.round((atual / max) * 100);
-                    } else if (max === -2 && typeof atual === 'number' && atual >= 0) {
-                        // Brother e alguns modelos: max=-2 (desconhecido), nível já é percentual direto
-                        perc = atual > 100 ? Math.round((atual / 255) * 100) : atual;
-                    } else {
-                        continue;
-                    }
-                    suprimentos.push({ nome: cores[i], percentual: Math.max(0, Math.min(100, perc)) });
-                }
-                resolve({ online: true, suprimentos });
-            }
+        session.get(oids, async (error, varbinds) => {
             session.close();
+            if (error) { resolve({ online: false, suprimentos: [] }); return; }
+            const cores = ['Preto', 'Ciano', 'Magenta', 'Amarelo'];
+            const suprimentos = [];
+            for (let i = 0; i < cores.length; i++) {
+                const vbMax  = varbinds[i * 2];
+                const vbAtual = varbinds[i * 2 + 1];
+                if (!vbMax || !vbAtual) continue;
+                if (snmp.isVarbindError(vbMax) || snmp.isVarbindError(vbAtual)) continue;
+                const max   = vbMax.value;
+                const atual = vbAtual.value;
+                let perc;
+                if (max > 0) {
+                    perc = Math.round((atual / max) * 100);
+                } else if (max === -2 && typeof atual === 'number' && atual >= 0) {
+                    perc = atual > 100 ? Math.round((atual / 255) * 100) : atual;
+                } else {
+                    continue;
+                }
+                suprimentos.push({ nome: cores[i], percentual: Math.max(0, Math.min(100, perc)) });
+            }
+            // Nenhum suprimento legível — tentar OID proprietário Brother
+            if (suprimentos.length === 0) {
+                const sups = await obterNiveisBrother(ip, comunidade);
+                resolve({ online: true, suprimentos: sups });
+                return;
+            }
+            resolve({ online: true, suprimentos });
         });
     });
 }

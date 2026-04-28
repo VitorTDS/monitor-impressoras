@@ -5,9 +5,17 @@ services:
       - "3000:3000"
     volumes:
       - db_data:/data
+    environment:
+      DATABASE_PATH: /data/banco.db
     env_file:
       - .env
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
   db_data:

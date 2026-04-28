@@ -205,6 +205,7 @@ dbReady.then(() => {
 
 // ── Middleware stack (ordem: helmet → cors → rate limit → body → static) ─────
 app.use(helmet({
+    hsts: false,   // sistema interno HTTP — sem forçar HTTPS no browser
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),

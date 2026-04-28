@@ -75,6 +75,14 @@
     .btn-atualizar:disabled { opacity: .5; cursor: not-allowed; }
     .spin { display: inline-block; animation: spin .8s linear infinite; }
 
+    .filter-bar { display: flex; gap: 6px; margin-bottom: 18px; }
+    .btn-filtro { background: var(--card); border: 1.5px solid var(--bd); color: var(--mt); padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; }
+    .btn-filtro:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-filtro.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-filtro.active-ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+    .btn-filtro.active-no { background: var(--no); border-color: var(--no); color: #fff; }
+    .filtro-vazio { grid-column: 1/-1; text-align: center; padding: 40px 0; color: var(--mt); font-size: 13px; }
+
     @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .ctop { flex-wrap: wrap; gap: 8px; } }
   </style>
 </head>
@@ -111,6 +119,12 @@
     <div class="ph-sub">Níveis consultados em tempo real via SNMP · Atualiza a cada 30s</div>
     <div class="lupd"><div class="dot" aria-hidden="true"></div><span id="lupd">Aguardando...</span></div>
 
+    <div class="filter-bar">
+      <button class="btn-filtro active" id="f-todos"   onclick="setFiltro('todos')">Todos</button>
+      <button class="btn-filtro"        id="f-online"  onclick="setFiltro('online')">🟢 Online</button>
+      <button class="btn-filtro"        id="f-offline" onclick="setFiltro('offline')">🔴 Offline</button>
+    </div>
+
     <div class="alert-global" id="alertbox" style="display:none" role="alert">
       <div class="alert-title"><span class="ico" aria-hidden="true">⚠️</span><span id="alertmsg"></span></div>
       <div class="alert-items" id="alertitems"></div>
@@ -131,6 +145,7 @@
 
   let dadosCache = [];
   let timerId    = null;
+  let filtroAtivo = 'todos';
 
   const esc = t => String(t ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
 
@@ -144,6 +159,15 @@
 
   function pClass(v) { return v <= 10 ? 'cr' : v <= 25 ? 'wn' : 'ok'; }
   function tBaixa(s) { return (s || []).some(x => x.percentual <= 15); }
+
+  function setFiltro(f) {
+    filtroAtivo = f;
+    ['todos','online','offline'].forEach(k => {
+      const btn = document.getElementById('f-' + k);
+      btn.className = 'btn-filtro' + (k === f ? (k === 'online' ? ' active-ok' : k === 'offline' ? ' active-no' : ' active') : '');
+    });
+    renderizar();
+  }
 
   function setBotoes(carregando) {
     document.getElementById('btn-atualizar').disabled = carregando;
@@ -206,7 +230,16 @@
       return;
     }
 
-    g.innerHTML = dadosCache.map(p => {
+    const lista = filtroAtivo === 'online'  ? dadosCache.filter(p =>  p.online)
+                : filtroAtivo === 'offline' ? dadosCache.filter(p => !p.online)
+                : dadosCache;
+
+    if (!lista.length) {
+      g.innerHTML = `<div class="filtro-vazio">Nenhuma impressora ${filtroAtivo === 'online' ? 'online' : 'offline'} no momento.</div>`;
+      return;
+    }
+
+    g.innerHTML = lista.map(p => {
       const sup   = Array.isArray(p.suprimentos) ? p.suprimentos : [];
       const baixa = tBaixa(sup);
       return `

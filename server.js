@@ -262,12 +262,23 @@ function obterDadosSNMP(ip, comunidade) {
                 const cores = ['Preto', 'Ciano', 'Magenta', 'Amarelo'];
                 const suprimentos = [];
                 for (let i = 0; i < cores.length; i++) {
-                    const max   = varbinds[i * 2]?.value;
-                    const atual = varbinds[i * 2 + 1]?.value;
+                    const vbMax  = varbinds[i * 2];
+                    const vbAtual = varbinds[i * 2 + 1];
+                    if (!vbMax || !vbAtual) continue;
+                    if (snmp.isVarbindError(vbMax) || snmp.isVarbindError(vbAtual)) continue;
+                    const max   = vbMax.value;
+                    const atual = vbAtual.value;
+                    let perc;
                     if (max > 0) {
-                        const perc = Math.round((atual / max) * 100);
-                        suprimentos.push({ nome: cores[i], percentual: perc < 0 ? 0 : (perc > 100 ? 100 : perc) });
+                        // caso normal: capacidade conhecida
+                        perc = Math.round((atual / max) * 100);
+                    } else if (max === -2 && typeof atual === 'number' && atual >= 0) {
+                        // Brother e alguns modelos: max=-2 (desconhecido), nível já é percentual direto
+                        perc = atual > 100 ? Math.round((atual / 255) * 100) : atual;
+                    } else {
+                        continue;
                     }
+                    suprimentos.push({ nome: cores[i], percentual: Math.max(0, Math.min(100, perc)) });
                 }
                 resolve({ online: true, suprimentos });
             }

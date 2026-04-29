@@ -270,9 +270,15 @@
       const agrupados = {};
       imps.forEach(p => {
         const m = (p.modelo||'').trim().toUpperCase();
-        let chave = (m.includes('GX7010')||m.includes('GX6010')||m.includes('7010')||m.includes('6010'))
-          ? 'Canon GX6010 / GX7010'
-          : (p.modelo||'Geral').trim().replace(/\s+/g,' ');
+        const isTintaP = (p.material || 'Toner') === 'Tinta';
+        let chave;
+        if (isTintaP && (m.includes('6000') || m.includes('6010'))) {
+          chave = 'Canon GX6010';
+        } else if (isTintaP && (m.includes('7000') || m.includes('7010'))) {
+          chave = 'Canon GX7010';
+        } else {
+          chave = (p.modelo||'Geral').trim().replace(/\s+/g,' ');
+        }
         if (!agrupados[chave]) agrupados[chave] = {...p, modelo:chave, localizacoes:[], modelosOriginais:new Set()};
         if (p.localizacao) agrupados[chave].localizacoes.push(p.localizacao);
         agrupados[chave].modelosOriginais.add((p.modelo||'').trim());

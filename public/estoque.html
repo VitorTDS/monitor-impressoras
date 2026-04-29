@@ -272,10 +272,8 @@
         const m = (p.modelo||'').trim().toUpperCase();
         const isTintaP = (p.material || 'Toner') === 'Tinta';
         let chave;
-        if (isTintaP && (m.includes('6000') || m.includes('6010'))) {
-          chave = 'Canon GX6010';
-        } else if (isTintaP && (m.includes('7000') || m.includes('7010'))) {
-          chave = 'Canon GX7010';
+        if (isTintaP && (m.includes('6000') || m.includes('6010') || m.includes('7000') || m.includes('7010'))) {
+          chave = 'Canon GX6010 / GX7010';
         } else {
           chave = (p.modelo||'Geral').trim().replace(/\s+/g,' ');
         }

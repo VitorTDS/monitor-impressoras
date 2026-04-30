@@ -230,6 +230,8 @@
     document.querySelectorAll('.rel-tab').forEach(b => b.classList.remove('act'));
     document.getElementById('panel-' + aba).classList.add('act');
     btn.classList.add('act');
+    if (aba === 'impressoes'    && document.getElementById('sel-imp').value)   carregarImpressoes();
+    if (aba === 'tinta'         && document.getElementById('sel-tinta').value) carregarTinta();
     if (aba === 'disponibilidade') carregarDisponibilidade();
     if (aba === 'estoque')         carregarEstoque();
   }

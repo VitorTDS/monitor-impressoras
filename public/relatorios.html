@@ -1,0 +1,402 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impressoras Sobral | Relat&oacute;rios</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    .rel-tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+    .rel-tab{background:var(--card);border:1px solid var(--bd);color:var(--mt);padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+    .rel-tab.act{border-color:var(--accent);color:var(--accent);background:rgba(251,102,2,.08)}
+    .rel-tab:hover:not(.act){border-color:#555;color:var(--tx)}
+    .rel-panel{display:none}.rel-panel.act{display:block}
+    .sel-wrap{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+    .rel-sel{background:var(--card);border:1.5px solid var(--bd);color:var(--tx);padding:9px 14px;border-radius:8px;font-size:13px;font-family:inherit;min-width:240px;cursor:pointer}
+    .rel-sel:focus{outline:none;border-color:var(--accent)}
+    .rel-per{display:flex;gap:6px}
+    .per-btn{background:var(--card);border:1px solid var(--bd);color:var(--mt);padding:7px 13px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+    .per-btn.act{border-color:var(--accent);color:var(--accent);background:rgba(251,102,2,.08)}
+    .ficha-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+    .ficha-item{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px}
+    .ficha-label{font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+    .ficha-val{font-size:18px;font-weight:800;color:var(--tx)}
+    .ficha-val.ok{color:var(--ok)}.ficha-val.no{color:var(--no)}.ficha-val.wn{color:#f59e0b}
+    .chart-wrap{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:20px}
+    .chart-title{font-size:14px;font-weight:700;margin-bottom:16px}
+    .chart-inner{position:relative;height:260px}
+    .sup-bars{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+    .smeta{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;color:var(--mt);text-transform:uppercase;letter-spacing:.5px}
+    .pct{font-weight:700}.pct.wn{color:#f59e0b}.pct.cr{color:var(--no)}
+    .bar{height:10px}
+    .tbl-wrap{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+    .tbl-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+    .tbl-wrap th{background:rgba(251,102,2,.08);color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:10px 16px;text-align:left;border-bottom:1px solid var(--bd)}
+    .tbl-wrap td{padding:10px 16px;border-bottom:1px solid var(--bd);color:var(--tx)}
+    .tbl-wrap tr:last-child td{border-bottom:none}
+    .tbl-wrap tr:hover td{background:rgba(251,102,2,.04)}
+    .badge-ok{background:rgba(16,185,129,.12);color:var(--ok);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700}
+    .badge-no{background:rgba(239,68,68,.12);color:var(--no);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700}
+    .badge-wn{background:rgba(245,158,11,.12);color:#f59e0b;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700}
+    .up-bar-wrap{display:grid;gap:10px}
+    .up-row{display:grid;grid-template-columns:200px 1fr 60px;align-items:center;gap:12px}
+    .up-label{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .up-track{background:var(--bd);border-radius:6px;height:12px;overflow:hidden}
+    .up-fill{height:100%;border-radius:6px;background:var(--ok);transition:width .4s}
+    .up-fill.med{background:#f59e0b}.up-fill.low{background:var(--no)}
+    .up-pct{font-size:12px;font-weight:800;text-align:right}
+    .empty-state{text-align:center;padding:40px;color:var(--mt);font-size:13px}
+    @media(max-width:640px){.up-row{grid-template-columns:1fr 60px}.up-label{display:none}.ficha-grid{grid-template-columns:1fr 1fr}}
+  </style>
+</head>
+<body>
+<script src="admin-auth.js"></script>
+<script>requireAuth(); initTheme();</script>
+
+<div class="toast" id="toast"></div>
+<div class="loader" id="loader"><div class="spinner"></div></div>
+
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-dot"></div>
+    <div><strong>Impressoras Sobral</strong><span>Gerenciamento de rede</span></div>
+  </div>
+  <nav class="sb-nav">
+    <a href="admin.html"        class="sb-item">&#x1F4CA; Dashboard</a>
+    <a href="dispositivos.html" class="sb-item">&#x1F5A8;&#xFE0F; Dispositivos</a>
+    <a href="cadastrar.html"    class="sb-item">&#x2795; Cadastrar</a>
+    <a href="tinta.html"        class="sb-item">&#x1F58B;&#xFE0F; N&iacute;veis de Tinta</a>
+    <a href="estoque.html"      class="sb-item">&#x1F4E6; Estoque</a>
+    <a href="usuarios.html"     class="sb-item">&#x1F465; Usu&aacute;rios</a>
+    <a href="relatorios.html"   class="sb-item">&#x1F4C8; Relat&oacute;rios</a>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar">&#x1F464;</div>
+      <div><strong id="userLabel">&#x2014;</strong><span>Administrador</span></div>
+    </div>
+    <button id="themeBtn" class="sb-theme" onclick="toggleTheme()">&#x1F319; Escuro</button>
+    <button class="sb-logout" onclick="logout()">Sair</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="main-topbar">
+    <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">&#x2630;</button>
+    <span class="main-title">&#x1F4C8; Relat&oacute;rios</span>
+    <span id="clock" class="main-clock"></span>
+  </div>
+  <main class="main-content">
+
+    <div class="rel-tabs">
+      <button class="rel-tab act" onclick="mudarAba('ficha',this)">&#x1F4CB; Ficha T&eacute;cnica</button>
+      <button class="rel-tab"     onclick="mudarAba('impressoes',this)">&#x1F5A8;&#xFE0F; Impress&otilde;es</button>
+      <button class="rel-tab"     onclick="mudarAba('tinta',this)">&#x1F58B;&#xFE0F; Consumo de Tinta</button>
+      <button class="rel-tab"     onclick="mudarAba('disponibilidade',this)">&#x1F4E1; Disponibilidade</button>
+      <button class="rel-tab"     onclick="mudarAba('estoque',this)">&#x1F4E6; Estoque &times; Consumo</button>
+    </div>
+
+    <!-- Ficha Tecnica -->
+    <div class="rel-panel act" id="panel-ficha">
+      <div class="sel-wrap">
+        <select class="rel-sel" id="sel-ficha" onchange="carregarFicha()">
+          <option value="">&#x2014; Selecione uma impressora &#x2014;</option>
+        </select>
+        <button class="per-btn" onclick="carregarFicha()">Atualizar</button>
+      </div>
+      <div id="ficha-content"><div class="empty-state">Selecione uma impressora para ver a ficha t&eacute;cnica.</div></div>
+    </div>
+
+    <!-- Impressoes -->
+    <div class="rel-panel" id="panel-impressoes">
+      <div class="sel-wrap">
+        <select class="rel-sel" id="sel-imp" onchange="carregarImpressoes()">
+          <option value="">&#x2014; Selecione uma impressora &#x2014;</option>
+        </select>
+        <div class="rel-per">
+          <button class="per-btn"     onclick="setPeriodo('hora',this)">Hora</button>
+          <button class="per-btn act" onclick="setPeriodo('dia',this)">Dia</button>
+          <button class="per-btn"     onclick="setPeriodo('mes',this)">M&ecirc;s</button>
+          <button class="per-btn"     onclick="setPeriodo('ano',this)">Ano</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">P&aacute;ginas impressas por per&iacute;odo</div>
+        <div class="chart-inner"><canvas id="chart-imp"></canvas></div>
+      </div>
+      <div id="imp-resumo"></div>
+    </div>
+
+    <!-- Consumo de Tinta -->
+    <div class="rel-panel" id="panel-tinta">
+      <div class="sel-wrap">
+        <select class="rel-sel" id="sel-tinta" onchange="carregarTinta()">
+          <option value="">&#x2014; Selecione uma impressora &#x2014;</option>
+        </select>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Evolu&ccedil;&atilde;o dos suprimentos &mdash; &uacute;ltimos 30 dias</div>
+        <div class="chart-inner"><canvas id="chart-tinta"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Disponibilidade -->
+    <div class="rel-panel" id="panel-disponibilidade">
+      <p style="font-size:12px;color:var(--mt);margin-bottom:16px">Uptime calculado com base nas coletas SNMP dos &uacute;ltimos 30 dias.</p>
+      <div id="disponibilidade-content"><div class="empty-state">Carregando...</div></div>
+    </div>
+
+    <!-- Estoque x Consumo -->
+    <div class="rel-panel" id="panel-estoque">
+      <p style="font-size:12px;color:var(--mt);margin-bottom:16px">Previs&atilde;o baseada no consumo m&eacute;dio de tinta dos &uacute;ltimos 30 dias.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Modelo</th><th>Insumo</th><th>Estoque</th><th>Consumo/dia</th><th>Previs&atilde;o</th></tr></thead>
+          <tbody id="estoque-tbody"><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--mt)">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="public-common.js"></script>
+<script>
+  initClock(); setActiveNav();
+
+  const COR_MAP = {
+    preto:   {border:'#555',      bg:'rgba(80,80,80,.25)'},
+    ciano:   {border:'#06b6d4',   bg:'rgba(6,182,212,.2)'},
+    magenta: {border:'#ec4899',   bg:'rgba(236,72,153,.2)'},
+    amarelo: {border:'#f59e0b',   bg:'rgba(245,158,11,.2)'}
+  };
+
+  function corChart(nome) {
+    const n = nome.toLowerCase();
+    if (n.includes('preto')   || n.includes('black'))   return COR_MAP.preto;
+    if (n.includes('ciano')   || n.includes('cyan'))    return COR_MAP.ciano;
+    if (n.includes('magenta'))                          return COR_MAP.magenta;
+    if (n.includes('amarelo') || n.includes('yellow'))  return COR_MAP.amarelo;
+    return {border:'var(--accent)',bg:'rgba(251,102,2,.2)'};
+  }
+
+  function corC(nome) {
+    const n = nome.toLowerCase();
+    if (n.includes('cyan')    || n.includes('ciano'))   return 'cyan';
+    if (n.includes('magenta'))                          return 'magenta';
+    if (n.includes('yellow')  || n.includes('amarelo')) return 'yellow';
+    if (n.includes('black')   || n.includes('preto'))   return 'black';
+    return 'def';
+  }
+
+  function pClass(v) { return v <= 10 ? 'cr' : v <= 25 ? 'wn' : ''; }
+  const token = () => localStorage.getItem('adminToken') || '';
+
+  let impressoras    = [];
+  let periodoPaginas = 'dia';
+  let chartImp       = null;
+  let chartTinta     = null;
+
+  function escHTML(s) {
+    return String(s ?? '').replace(/[&<>"']/g,
+      m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
+  }
+
+  async function carregarLista() {
+    try {
+      const r = await fetch('/api/impressoras', {headers:{Authorization:'Bearer '+token()}});
+      impressoras = await r.json();
+      ['sel-ficha','sel-imp','sel-tinta'].forEach(id => {
+        const sel = document.getElementById(id);
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">— Selecione uma impressora —</option>' +
+          impressoras.map(i =>
+            '<option value="' + i.id + '">' + escHTML(i.fabricante||i.nome) + ' — ' + escHTML(i.localizacao||i.ip) + '</option>'
+          ).join('');
+        if (cur) sel.value = cur;
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  function mudarAba(aba, btn) {
+    document.querySelectorAll('.rel-panel').forEach(p => p.classList.remove('act'));
+    document.querySelectorAll('.rel-tab').forEach(b => b.classList.remove('act'));
+    document.getElementById('panel-' + aba).classList.add('act');
+    btn.classList.add('act');
+    if (aba === 'disponibilidade') carregarDisponibilidade();
+    if (aba === 'estoque')         carregarEstoque();
+  }
+
+  async function carregarFicha() {
+    const id  = document.getElementById('sel-ficha').value;
+    const div = document.getElementById('ficha-content');
+    if (!id) {
+      div.innerHTML = '<div class="empty-state">Selecione uma impressora para ver a ficha t&eacute;cnica.</div>';
+      return;
+    }
+    div.innerHTML = '<div class="empty-state">Carregando...</div>';
+    try {
+      const r    = await fetch('/api/relatorios/impressoras', {headers:{Authorization:'Bearer '+token()}});
+      const lista = await r.json();
+      const imp  = lista.find(i => String(i.id) === String(id));
+      if (!imp) { div.innerHTML = '<div class="empty-state">Impressora n&atilde;o encontrada.</div>'; return; }
+      const sups = Array.isArray(imp.suprimentos) ? imp.suprimentos : [];
+      let html = '<div class="ficha-grid">';
+      html += '<div class="ficha-item"><div class="ficha-label">Fabricante</div><div class="ficha-val">' + escHTML(imp.nome) + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">Modelo</div><div class="ficha-val" style="font-size:14px">' + escHTML(imp.modelo||'&mdash;') + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">IP</div><div class="ficha-val" style="font-size:14px;color:var(--accent)">' + escHTML(imp.ip) + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">Localiza&ccedil;&atilde;o</div><div class="ficha-val" style="font-size:14px">' + escHTML(imp.localizacao||'&mdash;') + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">Tipo</div><div class="ficha-val" style="font-size:14px">' + escHTML(imp.tipo||'&mdash;') + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">Material</div><div class="ficha-val" style="font-size:14px">' + escHTML(imp.material||'&mdash;') + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">Status</div><div class="ficha-val ' + (imp.online?'ok':'no') + '">' + (imp.online?'Online':'Offline') + '</div></div>';
+      html += '<div class="ficha-item"><div class="ficha-label">P&aacute;ginas (total)</div><div class="ficha-val">' + (imp.paginas_total!=null ? Number(imp.paginas_total).toLocaleString('pt-BR') : '&mdash;') + '</div></div>';
+      html += '</div>';
+      if (sups.length) {
+        html += '<div class="chart-wrap"><div class="chart-title">Suprimentos atuais</div><div class="sup-bars">';
+        sups.forEach(s => {
+          html += '<div class="srow"><div class="smeta"><span>' + escHTML(s.nome) + '</span><span class="pct ' + pClass(s.percentual) + '">' + s.percentual + '%</span></div>';
+          html += '<div class="bar"><div class="fill ' + corC(s.nome) + '" style="width:' + s.percentual + '%" role="progressbar"></div></div></div>';
+        });
+        html += '</div></div>';
+      }
+      div.innerHTML = html;
+    } catch(e) { div.innerHTML = '<div class="empty-state">Erro ao carregar dados.</div>'; }
+  }
+
+  function setPeriodo(p, btn) {
+    periodoPaginas = p;
+    document.querySelectorAll('.per-btn').forEach(b => b.classList.remove('act'));
+    btn.classList.add('act');
+    carregarImpressoes();
+  }
+
+  async function carregarImpressoes() {
+    const id = document.getElementById('sel-imp').value;
+    if (!id) return;
+    try {
+      const r     = await fetch('/api/relatorios/paginas/' + id + '?periodo=' + periodoPaginas, {headers:{Authorization:'Bearer '+token()}});
+      const dados = await r.json();
+      const labels = dados.map(d => d.periodo);
+      const values = dados.map(d => d.paginas_impressas);
+      const total  = values.reduce((a,b) => a+b, 0);
+      const resumo = document.getElementById('imp-resumo');
+      if (dados.length) {
+        let rhtml = '<div class="ficha-grid" style="margin-top:0">';
+        rhtml += '<div class="ficha-item"><div class="ficha-label">Total no per&iacute;odo</div><div class="ficha-val">' + total.toLocaleString('pt-BR') + '</div></div>';
+        rhtml += '<div class="ficha-item"><div class="ficha-label">Pico</div><div class="ficha-val">' + Math.max(...values).toLocaleString('pt-BR') + '</div></div>';
+        rhtml += '<div class="ficha-item"><div class="ficha-label">M&eacute;dia por ' + periodoPaginas + '</div><div class="ficha-val">' + Math.round(total/dados.length).toLocaleString('pt-BR') + '</div></div>';
+        rhtml += '</div>';
+        resumo.innerHTML = rhtml;
+      } else {
+        resumo.innerHTML = '<div class="empty-state">Sem dados no per&iacute;odo. Os dados s&atilde;o coletados a cada hora.</div>';
+      }
+      if (chartImp) chartImp.destroy();
+      const ctx = document.getElementById('chart-imp').getContext('2d');
+      chartImp = new Chart(ctx, {
+        type:'bar',
+        data:{labels, datasets:[{label:'Páginas impressas', data:values,
+          backgroundColor:'rgba(251,102,2,.55)', borderColor:'var(--accent)',
+          borderWidth:1, borderRadius:4}]},
+        options:{responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{
+            x:{ticks:{color:'var(--mt)',font:{size:11}}, grid:{color:'rgba(255,255,255,.05)'}},
+            y:{ticks:{color:'var(--mt)',font:{size:11}}, grid:{color:'rgba(255,255,255,.05)'}, beginAtZero:true}
+          }}
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  async function carregarTinta() {
+    const id = document.getElementById('sel-tinta').value;
+    if (!id) return;
+    try {
+      const r     = await fetch('/api/relatorios/tinta/' + id, {headers:{Authorization:'Bearer '+token()}});
+      const dados = await r.json();
+      const cores = [...new Set(dados.map(d => d.cor))];
+      const dias  = [...new Set(dados.map(d => d.dia))].sort();
+      const datasets = cores.map(cor => {
+        const c = corChart(cor);
+        return {label:cor, data:dias.map(dia => {
+            const pt = dados.find(d => d.cor===cor && d.dia===dia);
+            return pt ? pt.percentual_medio : null;
+          }), borderColor:c.border, backgroundColor:c.bg,
+          fill:true, tension:0.3, spanGaps:true, pointRadius:3};
+      });
+      if (chartTinta) chartTinta.destroy();
+      const ctx = document.getElementById('chart-tinta').getContext('2d');
+      chartTinta = new Chart(ctx, {
+        type:'line',
+        data:{labels:dias, datasets},
+        options:{responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{labels:{color:'var(--tx)',font:{size:12}}}},
+          scales:{
+            x:{ticks:{color:'var(--mt)',font:{size:11}}, grid:{color:'rgba(255,255,255,.05)'}},
+            y:{ticks:{color:'var(--mt)',font:{size:11},callback:v=>v+'%'},
+               grid:{color:'rgba(255,255,255,.05)'}, min:0, max:100}
+          }}
+      });
+      if (!dados.length) {
+        document.querySelector('#panel-tinta .chart-wrap').innerHTML =
+          '<div class="empty-state">Sem hist&oacute;rico de tinta ainda. Dados coletados a cada hora.</div>';
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  async function carregarDisponibilidade() {
+    const div = document.getElementById('disponibilidade-content');
+    try {
+      const r     = await fetch('/api/relatorios/disponibilidade', {headers:{Authorization:'Bearer '+token()}});
+      const dados = await r.json();
+      if (!dados.length) { div.innerHTML = '<div class="empty-state">Nenhuma impressora cadastrada.</div>'; return; }
+      let html = '<div class="tbl-wrap" style="margin-bottom:20px"><table><thead><tr><th>Impressora</th><th>IP</th><th>Localiza&ccedil;&atilde;o</th><th>Uptime (30d)</th><th>&Uacute;ltimo offline</th></tr></thead><tbody>';
+      dados.forEach(d => {
+        const pct = d.uptime_pct != null ? d.uptime_pct :
+          (d.total_checkins > 0 ? Math.round(100*d.checkins_online/d.total_checkins) : null);
+        const badge = pct == null ? '<span class="badge-wn">Sem dados</span>'
+          : pct >= 90 ? '<span class="badge-ok">' + pct + '%</span>'
+          : pct >= 60 ? '<span class="badge-wn">' + pct + '%</span>'
+          :             '<span class="badge-no">' + pct + '%</span>';
+        const offline = d.ultimo_offline ? new Date(d.ultimo_offline).toLocaleString('pt-BR')
+          : d.total_checkins > 0 ? '&mdash; sempre online' : '&mdash;';
+        html += '<tr><td><strong>' + escHTML(d.nome) + '</strong></td><td style="color:var(--accent)">' + escHTML(d.ip) + '</td><td>' + escHTML(d.localizacao||'&mdash;') + '</td><td>' + badge + ' <span style="font-size:11px;color:var(--mt)">(' + (d.total_checkins||0) + ' coletas)</span></td><td style="font-size:12px;color:var(--mt)">' + offline + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      html += '<div class="chart-wrap"><div class="chart-title">Uptime por impressora</div><div class="up-bar-wrap">';
+      dados.forEach(d => {
+        const pct = d.uptime_pct != null ? d.uptime_pct :
+          (d.total_checkins > 0 ? Math.round(100*d.checkins_online/d.total_checkins) : 0);
+        const cls = pct >= 90 ? '' : pct >= 60 ? 'med' : 'low';
+        html += '<div class="up-row"><div class="up-label" title="' + escHTML(d.nome) + '">' + escHTML(d.nome) + '</div><div class="up-track"><div class="up-fill ' + cls + '" style="width:' + pct + '%"></div></div><div class="up-pct">' + (pct!=null?pct:'&mdash;') + '%</div></div>';
+      });
+      html += '</div></div>';
+      div.innerHTML = html;
+    } catch(e) { div.innerHTML = '<div class="empty-state">Erro ao carregar dados.</div>'; }
+  }
+
+  async function carregarEstoque() {
+    const tbody = document.getElementById('estoque-tbody');
+    try {
+      const r     = await fetch('/api/relatorios/estoque', {headers:{Authorization:'Bearer '+token()}});
+      const dados = await r.json();
+      if (!dados.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--mt)">Estoque vazio.</td></tr>'; return; }
+      tbody.innerHTML = dados.map(d => {
+        const dias  = d.dias_estimados;
+        const badge = dias == null ? '<span class="badge-wn">Sem dados</span>'
+          : dias > 90 ? '<span class="badge-ok">~' + dias + ' dias</span>'
+          : dias > 30 ? '<span class="badge-wn">~' + dias + ' dias</span>'
+          :             '<span class="badge-no">~' + dias + ' dias &#x26A0;</span>';
+        return '<tr><td><strong>' + escHTML(d.modelo) + '</strong></td><td>' + escHTML(d.insumo) + '</td><td>' + d.estoque_atual + ' un.</td><td>' + (d.consumo_dia_medio!=null ? d.consumo_dia_medio+'%/dia' : '<span style="color:var(--mt)">&mdash;</span>') + '</td><td>' + badge + '</td></tr>';
+      }).join('');
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--mt)">Erro ao carregar.</td></tr>'; }
+  }
+
+  carregarLista().then(() => {
+    carregarDisponibilidade();
+    carregarEstoque();
+  });
+</script>
+</body>
+</html>

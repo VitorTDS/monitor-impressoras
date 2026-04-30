@@ -202,6 +202,28 @@ const dbReady = new Promise(resolve => {
             criado_em TEXT DEFAULT (datetime('now'))
         )`);
         db.run(`ALTER TABLE usuarios ADD COLUMN trocar_senha INTEGER DEFAULT 0`, () => {});
+        db.run(`CREATE TABLE IF NOT EXISTS historico_paginas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            impressora_id INTEGER NOT NULL,
+            paginas_total INTEGER,
+            coletado_em TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE
+        )`);
+        db.run(`CREATE TABLE IF NOT EXISTS historico_tinta (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            impressora_id INTEGER NOT NULL,
+            cor TEXT NOT NULL,
+            percentual INTEGER,
+            coletado_em TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE
+        )`);
+        db.run(`CREATE TABLE IF NOT EXISTS historico_status (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            impressora_id INTEGER NOT NULL,
+            online INTEGER NOT NULL,
+            registrado_em TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE
+        )`);
         db.run('SELECT 1', resolve);
     });
 });

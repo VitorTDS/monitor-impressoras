@@ -164,7 +164,7 @@
 
 <script src="public-common.js"></script>
 <script>
-  initClock(); setActiveNav();
+  initUserLabel(); initUserLabel(); initClock(); setActiveNav();
 
   const COR_MAP = {
     preto:   {border:'#555',      bg:'rgba(80,80,80,.25)'},
@@ -217,6 +217,11 @@
           ).join('');
         if (cur) sel.value = cur;
       });
+      if (!document.getElementById('sel-ficha').value && impressoras.length) {
+        const firstId = String(impressoras[0].id);
+        ['sel-ficha','sel-imp','sel-tinta'].forEach(id => { document.getElementById(id).value = firstId; });
+        carregarFicha();
+      }
     } catch(e) { console.error(e); }
   }
 
@@ -276,8 +281,10 @@
     const id = document.getElementById('sel-imp').value;
     if (!id) return;
     try {
-      const r     = await fetch('/api/relatorios/paginas/' + id + '?periodo=' + periodoPaginas, {headers:{Authorization:'Bearer '+token()}});
-      const dados = await r.json();
+      const r      = await fetch('/api/relatorios/paginas/' + id + '?periodo=' + periodoPaginas, {headers:{Authorization:'Bearer '+token()}});
+      const json   = await r.json();
+      const dados  = json.periodos || [];
+      const totalAtual = json.total_atual;
       const labels = dados.map(d => d.periodo);
       const values = dados.map(d => d.paginas_impressas);
       const total  = values.reduce((a,b) => a+b, 0);
@@ -290,7 +297,10 @@
         rhtml += '</div>';
         resumo.innerHTML = rhtml;
       } else {
-        resumo.innerHTML = '<div class="empty-state">Sem dados no per&iacute;odo. Os dados s&atilde;o coletados a cada hora.</div>';
+        let msg = '<div class="empty-state">Nenhuma p&aacute;gina impressa detectada nas coletas do per&iacute;odo.';
+        if (totalAtual) msg += '<br><span style="font-size:13px;font-weight:700;color:var(--tx)">Total acumulado nesta impressora: ' + Number(totalAtual).toLocaleString('pt-BR') + ' p&aacute;ginas</span><br><span style="font-size:12px;color:var(--mt)">O gr&aacute;fico ser&aacute; preenchido quando houver impress&otilde;es entre as coletas hor&aacute;rias.</span>';
+        msg += '</div>';
+        resumo.innerHTML = msg;
       }
       if (chartImp) chartImp.destroy();
       const ctx = document.getElementById('chart-imp').getContext('2d');
@@ -400,3 +410,4 @@
 </script>
 </body>
 </html>
+

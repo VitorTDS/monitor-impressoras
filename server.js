@@ -855,7 +855,11 @@ app.get('/api/relatorios/paginas/:id', verificarTokenAdmin, (req, res, next) => 
          ORDER BY periodo ASC`,
         [req.params.id], (err, rows) => {
             if (err) return next(err);
-            res.json(rows.filter(r => (r.paginas_impressas || 0) > 0));
+            const periodos = rows.filter(r => (r.paginas_impressas || 0) > 0);
+            db.get('SELECT MAX(paginas_total) AS total FROM historico_paginas WHERE impressora_id = ?',
+                [req.params.id], (err2, meta) => {
+                    res.json({ periodos, total_atual: meta ? meta.total : null });
+                });
         }
     );
 });

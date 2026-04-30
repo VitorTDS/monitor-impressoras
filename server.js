@@ -825,6 +825,105 @@ app.get('/api/descobrir', limiterDescoberta, async (req, res, next) => {
 });
 
 // ── Error handler centralizado (deve ser o último middleware) ─────────────────
+// ── Relatórios ────────────────────────────────────────────────────────────────
+
+app.get('/api/relatorios/impressoras', verificarTokenAdmin, (req, res, next) => {
+    db.all('SELECT id, nome, ip, modelo, localizacao, tipo, material, comunidade FROM impressoras ORDER BY nome ASC', [], async (err, rows) => {
+        if (err) return next(err);
+        const resultados = await Promise.all(rows.map(async (imp) => {
+            const [snmpData, paginas] = await Promise.all([
+                obterDadosSNMP(imp.ip, imp.comunidade || 'public'),
+                obterContadorPaginas(imp.ip, imp.comunidade || 'public')
+            ]);
+            return { ...imp, ...snmpData, paginas_total: paginas };
+        }));
+        res.json(resultados);
+    });
+});
+
+app.get('/api/relatorios/paginas/:id', verificarTokenAdmin, (req, res, next) => {
+    const fmtMap = { hora: '%Y-%m-%dT%H:00', dia: '%Y-%m-%d', mes: '%Y-%m', ano: '%Y' };
+    const janMap = { hora: '-2 days', dia: '-30 days', mes: '-12 months', ano: '-5 years' };
+    const fmt = fmtMap[req.query.periodo] || fmtMap.dia;
+    const jan = janMap[req.query.periodo] || janMap.dia;
+    db.all(
+        `SELECT strftime('${fmt}', coletado_em) AS periodo,
+                MAX(paginas_total) - MIN(paginas_total) AS paginas_impressas
+         FROM historico_paginas
+         WHERE impressora_id = ? AND coletado_em >= datetime('now', '${jan}')
+         GROUP BY strftime('${fmt}', coletado_em)
+         ORDER BY periodo ASC`,
+        [req.params.id], (err, rows) => {
+            if (err) return next(err);
+            res.json(rows.filter(r => (r.paginas_impressas || 0) > 0));
+        }
+    );
+});
+
+app.get('/api/relatorios/tinta/:id', verificarTokenAdmin, (req, res, next) => {
+    db.all(
+        `SELECT cor,
+                strftime('%Y-%m-%d', coletado_em) AS dia,
+                ROUND(AVG(percentual)) AS percentual_medio,
+                MIN(percentual) AS percentual_min
+         FROM historico_tinta
+         WHERE impressora_id = ? AND coletado_em >= datetime('now', '-30 days')
+         GROUP BY cor, strftime('%Y-%m-%d', coletado_em)
+         ORDER BY dia ASC, cor ASC`,
+        [req.params.id], (err, rows) => {
+            if (err) return next(err);
+            res.json(rows);
+        }
+    );
+});
+
+app.get('/api/relatorios/disponibilidade', verificarTokenAdmin, (req, res, next) => {
+    db.all(
+        `SELECT i.id, i.nome, i.ip, i.modelo, i.localizacao,
+                COUNT(h.id) AS total_checkins,
+                SUM(COALESCE(h.online, 0)) AS checkins_online,
+                ROUND(100.0 * SUM(COALESCE(h.online, 0)) / MAX(COUNT(h.id), 1), 1) AS uptime_pct,
+                MAX(CASE WHEN h.online = 0 THEN h.registrado_em END) AS ultimo_offline
+         FROM impressoras i
+         LEFT JOIN historico_status h
+                ON h.impressora_id = i.id AND h.registrado_em >= datetime('now', '-30 days')
+         GROUP BY i.id ORDER BY uptime_pct ASC, i.nome ASC`,
+        [], (err, rows) => {
+            if (err) return next(err);
+            res.json(rows);
+        }
+    );
+});
+
+app.get('/api/relatorios/estoque', verificarTokenAdmin, (req, res, next) => {
+    db.all(
+        `SELECT e.modelo, e.insumo, e.quantidade AS estoque_atual,
+                ROUND(AVG(c.consumo_dia), 3) AS consumo_dia_medio,
+                CASE WHEN ROUND(AVG(c.consumo_dia), 3) > 0
+                     THEN ROUND(e.quantidade / ROUND(AVG(c.consumo_dia), 3))
+                     ELSE NULL END AS dias_estimados
+         FROM estoque e
+         LEFT JOIN (
+             SELECT impressora_id, cor,
+                    (MAX(percentual) - MIN(percentual)) /
+                    MAX(julianday(MAX(coletado_em)) - julianday(MIN(coletado_em)), 1) AS consumo_dia
+             FROM historico_tinta
+             WHERE coletado_em >= datetime('now', '-30 days')
+             GROUP BY impressora_id, cor
+         ) c ON LOWER(c.cor) = LOWER(
+             CASE WHEN LOWER(e.insumo) LIKE '%preto%'   OR LOWER(e.insumo) LIKE '%black%'   THEN 'preto'
+                  WHEN LOWER(e.insumo) LIKE '%ciano%'   OR LOWER(e.insumo) LIKE '%cyan%'    THEN 'ciano'
+                  WHEN LOWER(e.insumo) LIKE '%magenta%'                                      THEN 'magenta'
+                  WHEN LOWER(e.insumo) LIKE '%amarelo%' OR LOWER(e.insumo) LIKE '%yellow%'  THEN 'amarelo'
+                  ELSE e.insumo END)
+         GROUP BY e.id ORDER BY dias_estimados ASC, e.modelo ASC`,
+        [], (err, rows) => {
+            if (err) return next(err);
+            res.json(rows);
+        }
+    );
+});
+
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
     console.error(`[${new Date().toISOString()}] ${req.method} ${req.url}`, err);

@@ -255,7 +255,7 @@ app.use(helmet({
         useDefaults: false,
         directives: {
             ...cspDirectives,
-            'script-src':      ["'self'", "'unsafe-inline'"],
+            'script-src':      ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
             'script-src-attr': ["'unsafe-inline'"],
         }
     }

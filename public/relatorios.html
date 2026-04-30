@@ -192,7 +192,7 @@
   }
 
   function pClass(v) { return v <= 10 ? 'cr' : v <= 25 ? 'wn' : ''; }
-  const token = () => localStorage.getItem('adminToken') || '';
+  const token = () => { try { const t = JSON.parse(sessionStorage.getItem('ic_token') || 'null'); return t && t.token ? t.token : ''; } catch { return ''; } };
 
   let impressoras    = [];
   let periodoPaginas = 'dia';

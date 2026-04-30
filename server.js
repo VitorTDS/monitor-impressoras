@@ -382,6 +382,41 @@ function obterDadosSNMP(ip, comunidade) {
     });
 }
 
+function obterContadorPaginas(ip, comunidade) {
+    return new Promise((resolve) => {
+        const session = snmp.createSession(ip, comunidade || 'public', { timeout: 2000, retries: 0 });
+        session.get(['1.3.6.1.2.1.43.10.2.1.4.1.1'], (err, varbinds) => {
+            session.close();
+            if (err || !varbinds[0] || snmp.isVarbindError(varbinds[0])) { resolve(null); return; }
+            const val = Number(varbinds[0].value);
+            resolve(isNaN(val) || val < 0 ? null : val);
+        });
+    });
+}
+
+async function coletarHistorico() {
+    db.all('SELECT id, ip, comunidade FROM impressoras', [], async (err, rows) => {
+        if (err || !rows.length) return;
+        const agora = new Date().toISOString();
+        for (const imp of rows) {
+            const [snmpData, paginas] = await Promise.all([
+                obterDadosSNMP(imp.ip, imp.comunidade),
+                obterContadorPaginas(imp.ip, imp.comunidade)
+            ]);
+            db.run('INSERT INTO historico_status (impressora_id, online, registrado_em) VALUES (?, ?, ?)',
+                [imp.id, snmpData.online ? 1 : 0, agora]);
+            for (const s of (snmpData.suprimentos || [])) {
+                db.run('INSERT INTO historico_tinta (impressora_id, cor, percentual, coletado_em) VALUES (?, ?, ?, ?)',
+                    [imp.id, s.nome, s.percentual, agora]);
+            }
+            if (paginas !== null) {
+                db.run('INSERT INTO historico_paginas (impressora_id, paginas_total, coletado_em) VALUES (?, ?, ?)',
+                    [imp.id, paginas, agora]);
+            }
+        }
+    });
+}
+
 // ── Descoberta de dispositivo via SNMP ────────────────────────────────────────
 const FABRICANTES = ['Canon', 'HP', 'Epson', 'Brother', 'Kyocera'];
 
@@ -802,6 +837,11 @@ module.exports = { app, db, dbReady, estoqueTokens };
 if (require.main === module) {
     const PORT   = process.env.PORT || 3000;
     const server = app.listen(PORT, () => console.log(`Servidor em http://localhost:${PORT}`));
+
+    dbReady.then(() => {
+        coletarHistorico();
+        setInterval(coletarHistorico, 60 * 60 * 1000).unref();
+    });
 
     function encerrar(sinal) {
         console.log(`\n${sinal} recebido. Encerrando servidor...`);

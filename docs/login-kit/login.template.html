@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  LOGIN KIT — Laboratório Sobral                              ║
+  ║  Padrão visual: dark warm bg + split layout + glassmorphism  ║
+  ║                                                              ║
+  ║  CUSTOMIZAR:                                                 ║
+  ║  1. <title>        → nome do sistema                        ║
+  ║  2. SYSTEM_NAME    → nome exibido no título grande          ║
+  ║  3. SYSTEM_LINE2   → segunda linha do título (ou remova)    ║
+  ║  4. SYSTEM_TAGLINE → descrição curta abaixo do título       ║
+  ║  5. SYSTEM_MODULES → linha "módulo · módulo · módulo"       ║
+  ║  6. logo.png       → logo circular da unidade (110×110px)   ║
+  ║  7. CARD_TITLE     → título dentro do card                  ║
+  ║  8. CARD_SUBTITLE  → subtítulo do card                      ║
+  ║  9. /api/auth/*    → endpoints de autenticação              ║
+  ║ 10. admin.html     → página pós-login                       ║
+  ╚══════════════════════════════════════════════════════════════╝
+  -->
+  <title>{{SYSTEM_NAME}} | Acesso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* ── Cores — ajuste aqui se quiser variar por projeto ── */
+      --accent:   #FB6602;   /* laranja principal */
+      --accent-d: #d94e00;   /* laranja escuro (gradiente do botão) */
+      --bg:       #1a0800;   /* base do fundo */
+      --border:   rgba(255,255,255,0.08);
+      --tx:       #f0f0f0;
+      --tx-dim:   rgba(255,255,255,0.38);
+      --tx-mid:   rgba(255,255,255,0.6);
+      --ok:       #10b981;
+      --err:      #f87171;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'IBM Plex Mono', monospace;
+      background-color: var(--bg);
+      color: var(--tx);
+      position: relative;
+    }
+
+    /* ── Fundo quente laranja/marrom — identidade Sobral ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 90% 80% at 20% 50%,  rgba(180,60,0,0.55)  0%, transparent 55%),
+        radial-gradient(ellipse 60% 70% at 65% 30%,  rgba(251,102,2,0.22) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 60% at 80% 80%,  rgba(120,30,0,0.35)  0%, transparent 55%),
+        radial-gradient(ellipse 100% 100% at 50% 50%, rgba(10,4,0,0.85)   0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Cantos decorativos ── */
+    .deco { position: fixed; width: 60px; height: 60px; z-index: 1; pointer-events: none; }
+    .deco-tl { top: 24px; left: 24px; border-top: 1.5px solid rgba(251,102,2,0.35); border-left: 1.5px solid rgba(251,102,2,0.35); border-radius: 3px 0 0 0; }
+    .deco-tr { top: 24px; right: 24px; border-top: 1.5px solid rgba(255,255,255,0.12); border-right: 1.5px solid rgba(255,255,255,0.12); border-radius: 0 3px 0 0; }
+    .deco-bl { bottom: 24px; left: 24px; border-bottom: 1.5px solid rgba(255,255,255,0.12); border-left: 1.5px solid rgba(255,255,255,0.12); border-radius: 0 0 0 3px; }
+    .deco-br { bottom: 24px; right: 24px; border-bottom: 1.5px solid rgba(251,102,2,0.35); border-right: 1.5px solid rgba(251,102,2,0.35); border-radius: 0 0 3px 0; }
+
+    /* ── Linhas SVG decorativas ── */
+    .deco-svg {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      z-index: 1; pointer-events: none;
+    }
+
+    /* ── Layout principal ── */
+    .scene {
+      position: relative;
+      z-index: 2;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      align-items: stretch;
+    }
+
+    /* ── Lado esquerdo — marca ── */
+    .brand-side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 3rem;
+      animation: fadeUp 0.7s cubic-bezier(0.16,1,0.3,1) both;
+      animation-delay: 0.1s;
+    }
+
+    .brand-eyebrow {
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .brand-eyebrow::before {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 1.5px;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 7vw, 6rem);
+      line-height: 0.92;
+      letter-spacing: 0.03em;
+      color: #fff;
+      margin-bottom: 1.5rem;
+    }
+    .brand-title .accent { color: var(--accent); }
+
+    .brand-desc {
+      font-size: 0.75rem;
+      font-weight: 300;
+      color: var(--tx-dim);
+      letter-spacing: 0.06em;
+      line-height: 1.8;
+      max-width: 340px;
+      text-align: center;
+    }
+
+    .brand-icon { margin-top: 3rem; opacity: 0.18; }
+
+    /* ── Lado direito — card ── */
+    .card-side {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 3rem 2rem 2rem;
+      animation: fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: rgba(12,14,18,0.8);
+      border: 1px solid var(--border);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.06);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    /* ── Header laranja com logo circular ── */
+    .card-header {
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.75rem 2rem;
+    }
+    .card-header img {
+      display: block;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .card-inner { padding: 1.75rem 2.5rem 2.5rem; }
+
+    .card-heading {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 0.05em;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .card-sub {
+      font-size: 0.6875rem;
+      color: var(--tx-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 1.75rem;
+    }
+    .divider { height: 1px; background: var(--border); margin-bottom: 1.5rem; }
+
+    /* ── Formulário ── */
+    .form-group { margin-bottom: 1rem; }
+    .form-label {
+      display: block;
+      font-size: 0.625rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--tx-mid);
+      margin-bottom: 0.4rem;
+    }
+    .input-wrap { position: relative; }
+    input.form-input {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      color: var(--tx);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      -webkit-appearance: none;
+    }
+    input.form-input::placeholder { color: rgba(255,255,255,0.18); }
+    input.form-input:focus { border-color: rgba(251,102,2,0.6); background: rgba(255,255,255,0.07); }
+    input.form-input:disabled { opacity: 0.45; cursor: not-allowed; }
+    input.form-input.has-toggle { padding-right: 2.75rem; }
+
+    .toggle-btn {
+      position: absolute;
+      right: 0.5rem; top: 50%;
+      transform: translateY(-50%);
+      width: 2rem; height: 2rem;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: none;
+      color: rgba(255,255,255,0.3); cursor: pointer;
+      border-radius: 6px; padding: 0; transition: color 0.15s;
+    }
+    .toggle-btn:hover { color: var(--accent); }
+    .toggle-btn svg { width: 16px; height: 16px; }
+
+    .caps-warn {
+      font-size: 0.6875rem;
+      color: #fbbf24;
+      background: rgba(251,191,36,0.08);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      display: flex; align-items: center; gap: 5px;
+      margin-top: 0.4rem;
+    }
+    .caps-warn[hidden] { display: none; }
+
+    .msg {
+      font-size: 0.75rem;
+      border-radius: 7px;
+      padding: 0.45rem 0.75rem;
+      margin-bottom: 0.75rem;
+      text-align: center;
+      display: none;
+      letter-spacing: 0.02em;
+    }
+    .msg.show { display: block; }
+    .msg.error   { color: var(--err); background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.2); }
+    .msg.success { color: var(--ok);  background: rgba(16,185,129,0.1);  border: 1px solid rgba(16,185,129,0.2); }
+
+    .warn-banner {
+      background: rgba(251,191,36,0.08);
+      border-left: 2.5px solid #f59e0b;
+      border-radius: 0 6px 6px 0;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.6875rem;
+      color: rgba(251,191,36,0.9);
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 0.8rem 1.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-d));
+      color: #fff; border: none; border-radius: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8125rem; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 4px 16px rgba(251,102,2,0.25);
+      margin-top: 0.25rem;
+    }
+    .btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(251,102,2,0.4); }
+    .btn-submit:active:not(:disabled) { transform: translateY(0); }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .card-footer-note {
+      font-size: 0.6rem; color: var(--tx-dim);
+      text-align: center; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-top: 1.25rem;
+    }
+
+    /* ── Loading overlay ── */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(8,10,12,0.9);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .loading-overlay.show { opacity: 1; pointer-events: all; }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-bottom: 14px;
+    }
+    .loading-overlay p { font-size: 0.6875rem; color: var(--tx-dim); letter-spacing: 0.16em; text-transform: uppercase; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+
+    @media (max-width: 700px) {
+      .scene { grid-template-columns: 1fr; justify-items: center; align-items: center; }
+      .brand-side { display: none; }
+      .card-side { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <p>Acessando sistema…</p>
+  </div>
+
+  <div class="deco deco-tl"></div>
+  <div class="deco deco-tr"></div>
+  <div class="deco deco-bl"></div>
+  <div class="deco deco-br"></div>
+
+  <svg class="deco-svg" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <line x1="0" y1="280" x2="420" y2="0"    stroke="rgba(251,102,2,0.06)" stroke-width="1"/>
+    <line x1="0" y1="520" x2="600" y2="0"    stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+    <line x1="60" y1="900" x2="720" y2="180" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>
+    <circle cx="180"  cy="140" r="80"  fill="none" stroke="rgba(251,102,2,0.07)" stroke-width="1"/>
+    <circle cx="180"  cy="140" r="130" fill="none" stroke="rgba(251,102,2,0.04)" stroke-width="1"/>
+    <circle cx="1320" cy="760" r="90"  fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    <circle cx="1320" cy="760" r="150" fill="none" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>
+    <line x1="1440" y1="200" x2="900" y2="900" stroke="rgba(255,255,255,0.025)" stroke-width="1"/>
+  </svg>
+
+  <div class="scene">
+
+    <!-- ═══ LADO ESQUERDO — MARCA ═══════════════════════════════════
+         Personalize: eyebrow, título (linha 1 e 2), tagline, módulos
+         e o SVG/ícone representativo do sistema.
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="brand-side">
+      <div class="brand-eyebrow">Sistema de Gestão</div>
+      <h1 class="brand-title">
+        <span class="accent">{{SYSTEM_NAME}}</span><br>{{SYSTEM_LINE2}}
+      </h1>
+      <p class="brand-desc">
+        {{SYSTEM_TAGLINE}}<br>
+        {{SYSTEM_MODULES}}
+      </p>
+
+      <!-- Ícone representativo do sistema — substitua o SVG abaixo -->
+      <div class="brand-icon">
+        <svg width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Coloque aqui um SVG temático do sistema -->
+          <rect x="10" y="30" width="140" height="45" rx="8" fill="rgba(255,255,255,0.9)"/>
+          <rect x="35" y="10" width="90" height="28" rx="4" fill="rgba(255,255,255,0.6)"/>
+          <circle cx="125" cy="52" r="8" fill="#FB6602"/>
+          <circle cx="125" cy="52" r="4" fill="rgba(255,255,255,0.9)"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══ LADO DIREITO — CARD DE LOGIN ═══════════════════════════
+         Personalize: logo.png, títulos, labels, endpoints de API
+         e a página de redirecionamento pós-login.
+    ════════════════════════════════════════════════════════════════ -->
+    <div class="card-side">
+      <div class="login-card">
+
+        <!-- Logo: coloque logo.png na pasta public/ do projeto -->
+        <div class="card-header">
+          <img src="logo.png" alt="Logo" width="110" height="110">
+        </div>
+
+        <div class="card-inner">
+
+          <!-- Tela: login -->
+          <div id="screen-login">
+            <h2 class="card-heading">{{CARD_TITLE}}</h2>
+            <p class="card-sub">{{CARD_SUBTITLE}}</p>
+            <div class="divider"></div>
+
+            <form id="form-login" onsubmit="doLogin(event)">
+              <div class="form-group">
+                <label class="form-label" for="login-user">Usuário</label>
+                <input class="form-input" type="text" id="login-user" placeholder="seu.usuario" autocomplete="username" autofocus>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="login-pass">Senha</label>
+                <div class="input-wrap">
+                  <input class="form-input has-toggle" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+                  <button type="button" class="toggle-btn" id="toggle-pass" aria-label="Mostrar senha">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="caps-warn" id="caps-warn" hidden>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2 L4 12 h4 v8 h8 v-8 h4 z"/></svg>
+                  Caps Lock ativado
+                </div>
+              </div>
+              <div class="msg" id="login-msg"></div>
+              <button type="submit" class="btn-submit" id="btn-login" disabled>Entrar</button>
+            </form>
+          </div>
+
+          <!-- Tela: trocar senha (primeiro acesso) -->
+          <div id="screen-trocar" style="display:none">
+            <h2 class="card-heading">Nova Senha</h2>
+            <p class="card-sub">Primeiro acesso detectado</p>
+            <div class="divider"></div>
+            <div class="warn-banner">Por segurança, defina uma senha pessoal antes de continuar.</div>
+            <form id="form-trocar" onsubmit="doTrocarSenha(event)">
+              <div class="form-group">
+                <label class="form-label" for="nova-pass">Nova senha</label>
+                <input class="form-input" type="password" id="nova-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="nova-confirm">Confirmar senha</label>
+                <input class="form-input" type="password" id="nova-confirm" placeholder="Repita a nova senha" autocomplete="new-password">
+              </div>
+              <div class="msg" id="trocar-msg"></div>
+              <button type="submit" class="btn-submit" id="btn-trocar">Definir e entrar</button>
+            </form>
+          </div>
+
+          <p class="card-footer-note">Problemas com acesso? Contate o TI</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  /* ════════════════════════════════════════════════════════════════
+     AUTENTICAÇÃO — adapte os endpoints e o storage conforme o projeto
+     ════════════════════════════════════════════════════════════════ */
+
+  const AUTH_LOGIN       = '/api/auth/login';        // POST { usuario, senha }
+  const AUTH_TROCAR      = '/api/auth/trocar-senha'; // POST { temp_token, nova_senha }
+  const SESSION_KEY      = 'ic_token';               // chave no sessionStorage
+  const POST_LOGIN_PAGE  = 'admin.html';             // redirect após login
+
+  /* ── Session ── */
+  function getToken() {
+    try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
+  }
+
+  let _tempToken = null;
+
+  /* ── Redirect se já logado ── */
+  (function () {
+    const t = getToken();
+    if (t && t.token) {
+      document.getElementById('loadingOverlay').classList.add('show');
+      window.location.href = POST_LOGIN_PAGE;
+    }
+  })();
+
+  /* ── Msg helper ── */
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg show ' + type;
+  }
+  function clearMsg(id) {
+    const el = document.getElementById(id);
+    el.textContent = '';
+    el.className = 'msg';
+  }
+
+  /* ── Habilita botão só com campos preenchidos ── */
+  function syncLoginBtn() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value;
+    document.getElementById('btn-login').disabled = !u || !p;
+  }
+  document.getElementById('login-user').addEventListener('input', syncLoginBtn);
+  document.getElementById('login-pass').addEventListener('input', syncLoginBtn);
+
+  /* ── Caps Lock ── */
+  const capsEl = document.getElementById('caps-warn');
+  const passEl = document.getElementById('login-pass');
+  function checkCaps(e) { capsEl.hidden = !(e.getModifierState && e.getModifierState('CapsLock')); }
+  passEl.addEventListener('keydown', checkCaps);
+  passEl.addEventListener('keyup',   checkCaps);
+  passEl.addEventListener('blur',    () => { capsEl.hidden = true; });
+
+  /* ── Toggle senha ── */
+  document.getElementById('toggle-pass').addEventListener('click', function () {
+    const showing = passEl.type === 'text';
+    passEl.type = showing ? 'password' : 'text';
+    this.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
+  });
+
+  /* ── Login ── */
+  async function doLogin(e) {
+    e.preventDefault();
+    const usuario = document.getElementById('login-user').value.trim();
+    const senha   = document.getElementById('login-pass').value;
+    clearMsg('login-msg');
+
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true;
+    btn.textContent = 'Verificando…';
+
+    try {
+      const res  = await fetch(AUTH_LOGIN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, senha }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        showMsg('login-msg', res.status === 429
+          ? 'Muitas tentativas. Aguarde antes de tentar novamente.'
+          : (data.erro || 'Usuário ou senha incorretos.'), 'error');
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
+        syncLoginBtn();
+        return;
+      }
+
+      if (data.trocar_senha) {
+        _tempToken = data.temp_token;
+        document.getElementById('screen-login').style.display = 'none';
+        document.getElementById('screen-trocar').style.display = 'block';
+        document.getElementById('nova-pass').focus();
+        return;
+      }
+
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, usuario: data.usuario }));
+      showMsg('login-msg', '✓ Acesso autorizado', 'success');
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').classList.add('show');
+        setTimeout(() => { window.location.href = POST_LOGIN_PAGE; }, 400);
+      }, 600);
+
+    } catch {
+      showMsg('login-msg', 'Falha de conexão. Verifique o servidor.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+      syncLoginBtn();
+    }
+  }
+
+  /* ── Troca de senha ── */
+  async function doTrocarSenha(e) {
+    e.preventDefault();
+    const nova = document.getElementById('nova-pass').value;
+    const conf = document.getElementById('nova-confirm').value;
+    clearMsg('trocar-msg');
+
+    if (nova.length < 6) { showMsg('trocar-msg', 'Mínimo 6 caracteres.', 'error'); return; }
+    if (nova !== conf)   { showMsg('trocar-msg', 'As senhas não coincidem.', 'error'); return; }
+
+    const btn = document.getElementById('btn-trocar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando…';
+
+    try {
+      const res  = await fetch(AUTH_TROCAR, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temp_token: _tempToken, nova_senha: nova }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        showMsg('trocar-msg', data.erro || 'Erro ao definir senha.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Definir e entrar';
+        return;
+      }
+
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: data.token, usuario: data.usuario }));
+      showMsg('trocar-msg', '✓ Senha definida!', 'success');
+      setTimeout(() => {
+        document.getElementById('loadingOverlay').classList.add('show');
+        setTimeout(() => { window.location.href = POST_LOGIN_PAGE; }, 400);
+      }, 600);
+
+    } catch {
+      showMsg('trocar-msg', 'Falha de conexão. Verifique o servidor.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Definir e entrar';
+    }
+  }
+</script>
+</body>
+</html>

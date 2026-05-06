@@ -7,6 +7,8 @@ const helmet       = require('helmet');
 const cors         = require('cors');
 const rateLimit    = require('express-rate-limit');
 const crypto       = require('crypto');
+const fs           = require('fs');
+const path         = require('path');
 
 const app = express();
 
@@ -69,7 +71,10 @@ let dashCacheAt   = 0;
 let dashRefreshing = false;
 const DASH_TTL    = 60_000;
 
-function invalidarCacheDash() { dashCacheAt = 0; }
+function invalidarCacheDash() {
+    dashCache = null;
+    dashCacheAt = 0;
+}
 
 async function refreshDashCache(rows) {
     if (dashRefreshing) return;
@@ -95,24 +100,73 @@ if (!ADMIN_SENHA) {
 }
 
 const adminTokens = new Map();
+const PERMISSOES_PADRAO = ['dashboard', 'impressoras', 'estoque', 'relatorios', 'usuarios', 'imprimir'];
 
-function gerarTokenAdmin() {
+function normalizarPermissoes(valor) {
+    if (!valor) return [...PERMISSOES_PADRAO];
+    if (Array.isArray(valor)) return valor.filter(p => PERMISSOES_PADRAO.includes(p));
+    try {
+        const parsed = JSON.parse(valor);
+        return Array.isArray(parsed) ? parsed.filter(p => PERMISSOES_PADRAO.includes(p)) : [...PERMISSOES_PADRAO];
+    } catch {
+        return String(valor).split(',').map(p => p.trim()).filter(p => PERMISSOES_PADRAO.includes(p));
+    }
+}
+
+function gerarTokenAdmin(user = {}) {
     const token = crypto.randomBytes(32).toString('hex');
-    adminTokens.set(token, Date.now() + 8 * 60 * 60 * 1000);
+    const perfil = user.perfil || 'admin';
+    const permissoes = perfil === 'admin' ? [...PERMISSOES_PADRAO] : normalizarPermissoes(user.permissoes);
+    adminTokens.set(token, {
+        exp: Date.now() + 8 * 60 * 60 * 1000,
+        userId: user.id || null,
+        usuario: user.usuario || ADMIN_USER,
+        nome: user.nome || 'Administrador',
+        perfil,
+        permissoes
+    });
     return token;
 }
 
 function verificarTokenAdmin(req, res, next) {
     const auth  = req.headers['authorization'] || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    const exp   = adminTokens.get(token);
+    const entry = adminTokens.get(token);
+    const exp   = typeof entry === 'number' ? entry : entry?.exp;
     if (!exp || Date.now() > exp) return res.status(401).json({ erro: 'Não autorizado' });
+    req.adminToken = token;
+    req.adminUser = typeof entry === 'number'
+        ? { perfil: 'admin', permissoes: [...PERMISSOES_PADRAO], usuario: ADMIN_USER }
+        : entry;
     next();
+}
+
+function exigirPermissao(permissao) {
+    return (req, res, next) => {
+        verificarTokenAdmin(req, res, () => {
+            const user = req.adminUser || {};
+            const permissoes = normalizarPermissoes(user.permissoes);
+            if (user.perfil === 'admin' || permissoes.includes(permissao)) return next();
+            res.status(403).json({ erro: 'Acesso negado para esta função.' });
+        });
+    };
+}
+
+function exigirAlgumaPermissao(permissoesNecessarias) {
+    return (req, res, next) => {
+        verificarTokenAdmin(req, res, () => {
+            const user = req.adminUser || {};
+            const permissoes = normalizarPermissoes(user.permissoes);
+            if (user.perfil === 'admin' || permissoesNecessarias.some(p => permissoes.includes(p))) return next();
+            res.status(403).json({ erro: 'Acesso negado para esta função.' });
+        });
+    };
 }
 
 setInterval(() => {
     const now = Date.now();
-    for (const [token, exp] of adminTokens) {
+    for (const [token, entry] of adminTokens) {
+        const exp = typeof entry === 'number' ? entry : entry.exp;
         if (now > exp) adminTokens.delete(token);
     }
 }, 60_000).unref();
@@ -198,10 +252,17 @@ const dbReady = new Promise(resolve => {
             usuario TEXT NOT NULL UNIQUE,
             senha_hash TEXT NOT NULL,
             trocar_senha INTEGER DEFAULT 0,
+            perfil TEXT DEFAULT 'admin',
+            permissoes TEXT DEFAULT '["dashboard","impressoras","estoque","relatorios","usuarios","imprimir"]',
             ativo INTEGER DEFAULT 1,
             criado_em TEXT DEFAULT (datetime('now'))
         )`);
         db.run(`ALTER TABLE usuarios ADD COLUMN trocar_senha INTEGER DEFAULT 0`, () => {});
+        db.run(`ALTER TABLE usuarios ADD COLUMN ultimo_login TEXT`, () => {});
+        db.run(`ALTER TABLE usuarios ADD COLUMN perfil TEXT DEFAULT 'admin'`, () => {});
+        db.run(`ALTER TABLE usuarios ADD COLUMN permissoes TEXT DEFAULT '["dashboard","impressoras","estoque","relatorios","usuarios","imprimir"]'`, () => {});
+        db.run(`UPDATE usuarios SET perfil = 'admin' WHERE perfil IS NULL`);
+        db.run(`UPDATE usuarios SET permissoes = '["dashboard","impressoras","estoque","relatorios","usuarios","imprimir"]' WHERE permissoes IS NULL`);
         db.run(`CREATE TABLE IF NOT EXISTS historico_paginas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             impressora_id INTEGER NOT NULL,
@@ -215,6 +276,17 @@ const dbReady = new Promise(resolve => {
             cor TEXT NOT NULL,
             percentual INTEGER,
             coletado_em TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE
+        )`);
+        db.run(`CREATE TABLE IF NOT EXISTS trocas_toner (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            impressora_id INTEGER NOT NULL,
+            cor TEXT NOT NULL,
+            percentual_anterior INTEGER,
+            percentual_novo INTEGER,
+            observacao TEXT,
+            usuario TEXT,
+            registrado_em TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (impressora_id) REFERENCES impressoras(id) ON DELETE CASCADE
         )`);
         db.run(`CREATE TABLE IF NOT EXISTS historico_status (
@@ -235,8 +307,8 @@ dbReady.then(() => {
         try {
             const hash = await hashSenha(ADMIN_SENHA);
             db.run(
-                `INSERT INTO usuarios (nome, usuario, senha_hash) VALUES (?, ?, ?)`,
-                ['Administrador', ADMIN_USER, hash],
+                `INSERT INTO usuarios (nome, usuario, senha_hash, perfil, permissoes) VALUES (?, ?, ?, 'admin', ?)`,
+                ['Administrador', ADMIN_USER, hash, JSON.stringify(PERMISSOES_PADRAO)],
                 (e) => { if (!e) console.log(`✅ Usuário admin criado: ${ADMIN_USER}`); }
             );
         } catch (e) { console.error('Erro ao criar admin:', e); }
@@ -290,7 +362,13 @@ const limiterDescoberta = rateLimit({
 
 app.use(limiterGlobal);
 app.use(express.json({ limit: '100kb' }));
-app.use(express.static('public'));
+
+const publicDirs = [
+    path.join(__dirname, '..', 'frontend', 'public'),
+    path.join(__dirname, 'public'),
+];
+const publicDir = publicDirs.find(dir => fs.existsSync(dir)) || publicDirs[0];
+app.use(express.static(publicDir));
 
 // ── SNMP ──────────────────────────────────────────────────────────────────────
 
@@ -461,7 +539,7 @@ function descobrirImpressora(ip) {
 
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 
-app.get('/api/dashboard', (req, res, next) => {
+app.get('/api/dashboard', exigirAlgumaPermissao(['dashboard', 'estoque']), (req, res, next) => {
     db.all('SELECT id, nome, ip, modelo, localizacao, comunidade, tipo, material FROM impressoras', [], async (err, rows) => {
         if (err) { console.error(err); return next(err); }
 
@@ -489,14 +567,14 @@ app.get('/api/dashboard', (req, res, next) => {
     });
 });
 
-app.get('/api/impressoras', (req, res, next) => {
+app.get('/api/impressoras', exigirAlgumaPermissao(['impressoras', 'estoque', 'relatorios']), (req, res, next) => {
     db.all('SELECT id, nome AS fabricante, ip, modelo, localizacao, comunidade, tipo, material FROM impressoras ORDER BY id ASC', [], (err, rows) => {
         if (err) return next(err);
         res.json(rows);
     });
 });
 
-app.post('/api/impressoras', (req, res, next) => {
+app.post('/api/impressoras', exigirPermissao('impressoras'), (req, res, next) => {
     const erros = validarImpressora(req.body, true);
     if (erros.length) return res.status(400).json({ erro: erros.join('; ') });
 
@@ -512,7 +590,7 @@ app.post('/api/impressoras', (req, res, next) => {
     );
 });
 
-app.put('/api/impressoras/:id', (req, res, next) => {
+app.put('/api/impressoras/:id', exigirPermissao('impressoras'), (req, res, next) => {
     const erros = validarImpressora(req.body, false);
     if (erros.length) return res.status(400).json({ erro: erros.join('; ') });
 
@@ -541,7 +619,7 @@ app.put('/api/impressoras/:id', (req, res, next) => {
     });
 });
 
-app.delete('/api/impressoras/:id', (req, res, next) => {
+app.delete('/api/impressoras/:id', exigirPermissao('impressoras'), (req, res, next) => {
     db.run('DELETE FROM impressoras WHERE id = ?', req.params.id, function (err) {
         if (err) { console.error(err); return next(err); }
         if (this.changes === 0) return res.status(404).json({ erro: 'Impressora não encontrada' });
@@ -550,13 +628,13 @@ app.delete('/api/impressoras/:id', (req, res, next) => {
     });
 });
 
-app.get('/api/estoque', (req, res) => {
+app.get('/api/estoque', exigirPermissao('estoque'), (req, res) => {
     db.all('SELECT id, modelo, insumo, quantidade, estado FROM estoque ORDER BY modelo ASC, estado ASC', [], (err, rows) => {
         res.json(rows || []);
     });
 });
 
-app.post('/api/estoque', verificarTokenEstoque, (req, res, next) => {
+app.post('/api/estoque', exigirPermissao('estoque'), (req, res, next) => {
     const erros = validarEstoque(req.body);
     if (erros.length) return res.status(400).json({ erro: erros.join('; ') });
 
@@ -572,7 +650,7 @@ app.post('/api/estoque', verificarTokenEstoque, (req, res, next) => {
     );
 });
 
-app.delete('/api/estoque/:id', verificarTokenEstoque, (req, res, next) => {
+app.delete('/api/estoque/:id', exigirPermissao('estoque'), (req, res, next) => {
     db.run('DELETE FROM estoque WHERE id = ?', req.params.id, function (err) {
         if (err) { console.error(err); return next(err); }
         if (this.changes === 0) return res.status(404).json({ erro: 'Item não encontrado' });
@@ -592,10 +670,19 @@ app.post('/api/auth/login', limiterAuth, (req, res) => {
         try {
             const ok = await verificarSenha(senha, user.senha_hash);
             if (!ok) return setTimeout(() => res.status(401).json({ ok: false, erro: 'Usuário ou senha incorretos.' }), 800);
+            db.run('UPDATE usuarios SET ultimo_login = datetime(\'now\') WHERE id = ?', [user.id]);
             if (user.trocar_senha) {
                 return res.json({ ok: true, trocar_senha: true, temp_token: gerarTempToken(user.id), usuario: user.usuario, nome: user.nome });
             }
-            res.json({ ok: true, token: gerarTokenAdmin(), usuario: user.usuario, nome: user.nome });
+            const permissoes = user.perfil === 'admin' ? PERMISSOES_PADRAO : normalizarPermissoes(user.permissoes);
+            res.json({
+                ok: true,
+                token: gerarTokenAdmin(user),
+                usuario: user.usuario,
+                nome: user.nome,
+                perfil: user.perfil || 'admin',
+                permissoes
+            });
         } catch {
             res.status(500).json({ ok: false, erro: 'Erro interno.' });
         }
@@ -618,9 +705,10 @@ app.post('/api/auth/trocar-senha', async (req, res) => {
             function(err) {
                 if (err || this.changes === 0) return res.status(500).json({ ok: false, erro: 'Erro ao atualizar senha.' });
                 tempTrocarSenhaTokens.delete(temp_token);
-                db.get('SELECT usuario, nome FROM usuarios WHERE id = ?', [entry.userId], (e, user) => {
+                db.get('SELECT id, usuario, nome, perfil, permissoes FROM usuarios WHERE id = ?', [entry.userId], (e, user) => {
                     if (e || !user) return res.status(500).json({ ok: false, erro: 'Erro interno.' });
-                    res.json({ ok: true, token: gerarTokenAdmin(), usuario: user.usuario, nome: user.nome });
+                    const permissoes = user.perfil === 'admin' ? PERMISSOES_PADRAO : normalizarPermissoes(user.permissoes);
+                    res.json({ ok: true, token: gerarTokenAdmin(user), usuario: user.usuario, nome: user.nome, perfil: user.perfil || 'admin', permissoes });
                 });
             }
         );
@@ -630,28 +718,32 @@ app.post('/api/auth/trocar-senha', async (req, res) => {
 app.get('/api/auth/verify', (req, res) => {
     const auth  = req.headers['authorization'] || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    const exp   = adminTokens.get(token);
+    const entry = adminTokens.get(token);
+    const exp   = typeof entry === 'number' ? entry : entry?.exp;
     if (!exp || Date.now() > exp) return res.status(401).json({ ok: false });
-    res.json({ ok: true });
+    const user = typeof entry === 'number' ? { perfil:'admin', permissoes:PERMISSOES_PADRAO } : entry;
+    res.json({ ok: true, perfil: user.perfil, permissoes: user.permissoes });
 });
 
 // ── Gestão de usuários ────────────────────────────────────────────────────────
-app.get('/api/usuarios', (req, res) => {
-    db.all('SELECT id, nome, usuario, ativo, criado_em FROM usuarios ORDER BY criado_em', [], (err, rows) => {
+app.get('/api/usuarios', exigirPermissao('usuarios'), (req, res) => {
+    db.all('SELECT id, nome, usuario, trocar_senha, perfil, permissoes, ativo, criado_em, ultimo_login FROM usuarios ORDER BY criado_em', [], (err, rows) => {
         if (err) return res.status(500).json({ erro: 'Erro ao listar usuários.' });
-        res.json(rows);
+        res.json(rows.map(u => ({ ...u, permissoes: normalizarPermissoes(u.permissoes) })));
     });
 });
 
-app.post('/api/usuarios', async (req, res) => {
-    const { nome, usuario, senha } = req.body;
+app.post('/api/usuarios', exigirPermissao('usuarios'), async (req, res) => {
+    const { nome, usuario, senha, perfil, permissoes } = req.body;
     if (!nome || !usuario || !senha) return res.status(400).json({ erro: 'Nome, usuário e senha são obrigatórios.' });
     if (senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres.' });
+    const perfilFinal = perfil === 'operador' ? 'operador' : 'admin';
+    const permsFinal = perfilFinal === 'admin' ? PERMISSOES_PADRAO : normalizarPermissoes(permissoes);
     try {
         const hash = await hashSenha(senha);
         db.run(
-            `INSERT INTO usuarios (nome, usuario, senha_hash, trocar_senha) VALUES (?, ?, ?, 1)`,
-            [nome.trim(), usuario.trim().toLowerCase(), hash],
+            `INSERT INTO usuarios (nome, usuario, senha_hash, trocar_senha, perfil, permissoes) VALUES (?, ?, ?, 1, ?, ?)`,
+            [nome.trim(), usuario.trim().toLowerCase(), hash, perfilFinal, JSON.stringify(permsFinal)],
             function(err) {
                 if (err) return res.status(409).json({ erro: 'Usuário já existe.' });
                 res.status(201).json({ ok: true, id: this.lastID });
@@ -660,15 +752,25 @@ app.post('/api/usuarios', async (req, res) => {
     } catch { res.status(500).json({ erro: 'Erro interno.' }); }
 });
 
-app.put('/api/usuarios/:id', async (req, res) => {
-    const { nome, senha, ativo } = req.body;
+app.put('/api/usuarios/:id', exigirPermissao('usuarios'), async (req, res) => {
+    const { nome, senha, ativo, trocar_senha, perfil, permissoes } = req.body;
     const fields = [];
     const vals   = [];
     if (nome  !== undefined) { fields.push('nome = ?');  vals.push(nome.trim()); }
     if (ativo !== undefined) { fields.push('ativo = ?'); vals.push(ativo ? 1 : 0); }
+    if (perfil !== undefined) {
+        const perfilFinal = perfil === 'operador' ? 'operador' : 'admin';
+        fields.push('perfil = ?'); vals.push(perfilFinal);
+        fields.push('permissoes = ?'); vals.push(JSON.stringify(perfilFinal === 'admin' ? PERMISSOES_PADRAO : normalizarPermissoes(permissoes)));
+    } else if (permissoes !== undefined) {
+        fields.push('permissoes = ?'); vals.push(JSON.stringify(normalizarPermissoes(permissoes)));
+    }
     if (senha) {
         if (senha.length < 6) return res.status(400).json({ erro: 'Senha deve ter ao menos 6 caracteres.' });
         try { fields.push('senha_hash = ?'); vals.push(await hashSenha(senha)); } catch { return res.status(500).json({ erro: 'Erro interno.' }); }
+        fields.push('trocar_senha = ?'); vals.push(trocar_senha === false ? 0 : 1);
+    } else if (trocar_senha !== undefined) {
+        fields.push('trocar_senha = ?'); vals.push(trocar_senha ? 1 : 0);
     }
     if (!fields.length) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
     vals.push(req.params.id);
@@ -679,7 +781,7 @@ app.put('/api/usuarios/:id', async (req, res) => {
     });
 });
 
-app.delete('/api/usuarios/:id', (req, res) => {
+app.delete('/api/usuarios/:id', exigirPermissao('usuarios'), (req, res) => {
     db.get('SELECT COUNT(*) AS total FROM usuarios WHERE ativo = 1', [], (err, row) => {
         if (err) return res.status(500).json({ erro: 'Erro interno.' });
         if (row.total <= 1) return res.status(400).json({ erro: 'Não é possível remover o único usuário ativo.' });
@@ -700,49 +802,133 @@ app.post('/api/auth/estoque', limiterAuth, (req, res) => {
 });
 
 // ── Gerador de PDF mínimo para impressão ─────────────────────────────────────
-function gerarPDF(texto) {
-    const esc = s => s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-    const linhas = texto.split('\n');
+function gerarPDF(texto, relatorio = null) {
+    const esc = s => String(s ?? '')
+        .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\x20-\x7E]/g, ' ')
+        .replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const num = n => Number(n || 0).toFixed(2).replace(/\.00$/, '');
+    const rgb = {
+        accent: [0.98, 0.40, 0.01], ink: [0.08, 0.10, 0.14], muted: [0.38, 0.41, 0.46],
+        line: [0.86, 0.87, 0.89], ok: [0.06, 0.55, 0.34], warn: [0.88, 0.45, 0.03],
+        bad: [0.75, 0.12, 0.12], cyan: [0.02, 0.62, 0.72], magenta: [0.75, 0.12, 0.55],
+        yellow: [0.90, 0.66, 0.04], black: [0.08, 0.10, 0.14], def: [0.98, 0.40, 0.01],
+        white: [1, 1, 1]
+    };
+    const c = arr => `${num(arr[0])} ${num(arr[1])} ${num(arr[2])}`;
+    const corTinta = nome => {
+        const n = String(nome || '').toLowerCase();
+        if (n.includes('cyan') || n.includes('ciano')) return rgb.cyan;
+        if (n.includes('magenta')) return rgb.magenta;
+        if (n.includes('yellow') || n.includes('amarelo')) return rgb.yellow;
+        if (n.includes('black') || n.includes('preto')) return rgb.black;
+        return rgb.def;
+    };
+    const pages = [];
+    let ops = [];
+    let y = 800;
+    const margin = 42, width = 595, height = 842, usable = width - margin * 2;
+    const newPage = () => { if (ops.length) pages.push(ops.join('\n')); ops = []; y = 800; };
+    const ensure = h => { if (y - h < 44) newPage(); };
+    const rect = (x, ry, w, h, color) => ops.push(`q ${c(color)} rg ${num(x)} ${num(ry)} ${num(w)} ${num(h)} re f Q`);
+    const textAt = (s, x, ty, size = 10, color = rgb.ink, font = 'F1') =>
+        ops.push(`BT /${font} ${size} Tf ${c(color)} rg ${num(x)} ${num(ty)} Td (${esc(s)}) Tj ET`);
+    const wrap = (s, max = 88) => {
+        const words = esc(s).split(/\s+/).filter(Boolean);
+        const lines = [];
+        let cur = '';
+        words.forEach(w => {
+            if ((cur + ' ' + w).trim().length > max) { if (cur) lines.push(cur); cur = w; }
+            else cur = (cur + ' ' + w).trim();
+        });
+        if (cur) lines.push(cur);
+        return lines.length ? lines : [''];
+    };
+    const section = title => {
+        ensure(38);
+        y -= 16;
+        rect(margin, y - 5, 5, 20, rgb.accent);
+        textAt(title, margin + 12, y, 13, rgb.ink, 'F2');
+        y -= 18;
+        rect(margin, y, usable, 0.8, rgb.line);
+        y -= 10;
+    };
+    const bodyLines = raw => {
+        String(raw || '').split('\n').forEach(line => {
+            const clean = line.replace(/\s*\|\s*/g, '   ');
+            if (!clean.trim()) { y -= 6; return; }
+            wrap(clean, 96).forEach(l => {
+                ensure(14);
+                textAt(l, margin, y, 9, rgb.ink);
+                y -= 13;
+            });
+        });
+    };
+    const tintaBars = rows => {
+        const latest = {};
+        (Array.isArray(rows) ? rows : []).forEach(r => {
+            const cor = r.cor || r.nome || 'Tinta';
+            if (!latest[cor] || String(r.dia || '') >= String(latest[cor].dia || '')) latest[cor] = r;
+        });
+        Object.values(latest).forEach(r => {
+            const pct = Math.max(0, Math.min(100, Number(r.percentual_medio ?? r.percentual ?? 0)));
+            ensure(36);
+            textAt(`${r.cor || r.nome || 'Tinta'} - ${pct}%`, margin, y, 10, pct <= 10 ? rgb.bad : pct <= 25 ? rgb.warn : rgb.ink, 'F2');
+            y -= 14;
+            rect(margin, y, usable, 10, rgb.line);
+            rect(margin, y, usable * pct / 100, 10, corTinta(r.cor || r.nome));
+            y -= 20;
+        });
+    };
 
-    const ops = ['BT', '/F1 10 Tf', '50 800 Td', '14 TL',
-        ...linhas.map(l => `(${esc(l)}) Tj T*`), 'ET'].join('\n');
-    const streamLen = Buffer.byteLength(ops, 'latin1');
+    rect(0, 786, width, 56, rgb.accent);
+    textAt(relatorio?.titulo || 'Relatorio de impressoras', margin, 812, 18, rgb.white, 'F2');
+    textAt(`Gerado em ${new Date().toLocaleString('pt-BR')}`, margin, 794, 9, rgb.white);
+    y = 760;
+    if (relatorio && Array.isArray(relatorio.secoes)) {
+        relatorio.secoes.forEach(secao => {
+            section(secao.titulo || 'Secao');
+            if (Array.isArray(secao.tinta) && secao.tinta.length) tintaBars(secao.tinta);
+            bodyLines(secao.texto || '');
+        });
+    } else {
+        section('Conteudo');
+        bodyLines(texto);
+    }
+    newPage();
 
-    const s1 = '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
-    const s2 = '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n';
-    const s3 = '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n';
-    const s4 = `4 0 obj\n<< /Length ${streamLen} >>\nstream\n${ops}\nendstream\nendobj\n`;
-    const s5 = '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n';
+    const objects = ['1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n'];
+    const kids = pages.map((_, i) => `${3 + i * 2} 0 R`).join(' ');
+    objects.push(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>\nendobj\n`);
+    pages.forEach((stream, i) => {
+        const pageObj = 3 + i * 2, contentObj = pageObj + 1;
+        objects.push(`${pageObj} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Contents ${contentObj} 0 R /Resources << /Font << /F1 ${3 + pages.length * 2} 0 R /F2 ${4 + pages.length * 2} 0 R >> >> >>\nendobj\n`);
+        objects.push(`${contentObj} 0 obj\n<< /Length ${Buffer.byteLength(stream, 'latin1')} >>\nstream\n${stream}\nendstream\nendobj\n`);
+    });
+    const font1 = 3 + pages.length * 2, font2 = font1 + 1;
+    objects.push(`${font1} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`);
+    objects.push(`${font2} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n`);
     const hdr = '%PDF-1.4\n';
-
-    const blen = s => Buffer.byteLength(s, 'latin1');
-    const off1 = blen(hdr);
-    const off2 = off1 + blen(s1);
-    const off3 = off2 + blen(s2);
-    const off4 = off3 + blen(s3);
-    const off5 = off4 + blen(s4);
-    const xrefPos = off5 + blen(s5);
+    const offsets = [];
+    let pos = Buffer.byteLength(hdr, 'latin1');
+    objects.forEach(o => { offsets.push(pos); pos += Buffer.byteLength(o, 'latin1'); });
+    const xrefPos = pos;
     const p = n => String(n).padStart(10, '0');
-
-    const xref =
-        'xref\n0 6\n' +
-        `0000000000 65535 f \r\n` +
-        `${p(off1)} 00000 n \r\n${p(off2)} 00000 n \r\n` +
-        `${p(off3)} 00000 n \r\n${p(off4)} 00000 n \r\n${p(off5)} 00000 n \r\n`;
-    const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF\n`;
-
-    return Buffer.concat([hdr, s1, s2, s3, s4, s5, xref, trailer].map(s => Buffer.from(s, 'latin1')));
+    const xref = 'xref\n0 ' + (objects.length + 1) + '\n0000000000 65535 f \r\n' +
+        offsets.map(o => `${p(o)} 00000 n \r\n`).join('');
+    const trailer = `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF\n`;
+    return Buffer.concat([hdr, ...objects, xref, trailer].map(s => Buffer.from(s, 'latin1')));
 }
 
 // ── Impressão via IPP + PDF (Canon MF / AirPrint) ────────────────────────────
-app.post('/api/impressoras/:id/imprimir', (req, res, next) => {
-    const { conteudo } = req.body;
+app.post('/api/impressoras/:id/imprimir', exigirPermissao('imprimir'), (req, res, next) => {
+    const { conteudo, relatorio } = req.body;
     if (!conteudo) return res.status(400).json({ erro: 'Conteúdo não informado' });
 
     db.get('SELECT * FROM impressoras WHERE id = ?', [req.params.id], (err, imp) => {
         if (err || !imp) return res.status(404).json({ erro: 'Impressora não encontrada' });
 
-        const docBuf = gerarPDF(conteudo);
+        const docBuf = gerarPDF(conteudo, relatorio);
 
         function ippAttr(tag, name, value) {
             const nb = Buffer.from(name, 'utf8'), vb = Buffer.from(value, 'utf8');
@@ -827,7 +1013,7 @@ app.get('/api/descobrir', limiterDescoberta, async (req, res, next) => {
 // ── Error handler centralizado (deve ser o último middleware) ─────────────────
 // ── Relatórios ────────────────────────────────────────────────────────────────
 
-app.get('/api/relatorios/impressoras', verificarTokenAdmin, (req, res, next) => {
+app.get('/api/relatorios/impressoras', exigirPermissao('relatorios'), (req, res, next) => {
     db.all('SELECT id, nome, ip, modelo, localizacao, tipo, material, comunidade FROM impressoras ORDER BY nome ASC', [], async (err, rows) => {
         if (err) return next(err);
         const resultados = await Promise.all(rows.map(async (imp) => {
@@ -841,7 +1027,7 @@ app.get('/api/relatorios/impressoras', verificarTokenAdmin, (req, res, next) => 
     });
 });
 
-app.get('/api/relatorios/paginas/:id', verificarTokenAdmin, (req, res, next) => {
+app.get('/api/relatorios/paginas/:id', exigirPermissao('relatorios'), (req, res, next) => {
     const fmtMap = { hora: '%Y-%m-%dT%H:00', dia: '%Y-%m-%d', mes: '%Y-%m', ano: '%Y' };
     const janMap = { hora: '-2 days', dia: '-30 days', mes: '-12 months', ano: '-5 years' };
     const fmt = fmtMap[req.query.periodo] || fmtMap.dia;
@@ -864,7 +1050,7 @@ app.get('/api/relatorios/paginas/:id', verificarTokenAdmin, (req, res, next) => 
     );
 });
 
-app.get('/api/relatorios/tinta/:id', verificarTokenAdmin, (req, res, next) => {
+app.get('/api/relatorios/tinta/:id', exigirPermissao('relatorios'), (req, res, next) => {
     db.all(
         `SELECT cor,
                 strftime('%Y-%m-%d', coletado_em) AS dia,
@@ -881,7 +1067,106 @@ app.get('/api/relatorios/tinta/:id', verificarTokenAdmin, (req, res, next) => {
     );
 });
 
-app.get('/api/relatorios/disponibilidade', verificarTokenAdmin, (req, res, next) => {
+app.get('/api/relatorios/trocas-toner', exigirPermissao('relatorios'), (req, res, next) => {
+    const diasPermitidos = new Set([7, 30, 90, 180]);
+    const dias = diasPermitidos.has(Number(req.query.dias)) ? Number(req.query.dias) : 30;
+    db.all(
+        `SELECT h.impressora_id,
+                i.nome, i.ip, i.modelo, i.localizacao,
+                h.cor, h.percentual, h.coletado_em
+         FROM historico_tinta h
+         JOIN impressoras i ON i.id = h.impressora_id
+         WHERE h.coletado_em >= datetime('now', ?)
+         ORDER BY h.impressora_id ASC, h.cor ASC, h.coletado_em ASC`,
+        [`-${dias} days`], (err, rows) => {
+            if (err) return next(err);
+            const grupos = new Map();
+            for (const row of rows) {
+                const key = `${row.impressora_id}:${String(row.cor || '').toLowerCase()}`;
+                if (!grupos.has(key)) grupos.set(key, []);
+                grupos.get(key).push(row);
+            }
+            const eventos = [];
+            for (const pontos of grupos.values()) {
+                for (let i = 1; i < pontos.length; i++) {
+                    const anterior = Number(pontos[i - 1].percentual || 0);
+                    const atual = Number(pontos[i].percentual || 0);
+                    const diferenca = atual - anterior;
+                    if (diferenca >= 35 && atual >= 60) {
+                        const p = pontos[i];
+                        eventos.push({
+                            id: `auto-${p.impressora_id}-${p.cor}-${p.coletado_em}`,
+                            origem: 'automatica',
+                            impressora_id: p.impressora_id,
+                            nome: p.nome,
+                            ip: p.ip,
+                            modelo: p.modelo,
+                            localizacao: p.localizacao,
+                            cor: p.cor,
+                            data: p.coletado_em,
+                            percentual_anterior: anterior,
+                            percentual_atual: atual,
+                            diferenca
+                        });
+                    }
+                }
+            }
+            db.all(
+                `SELECT t.id, t.impressora_id, i.nome, i.ip, i.modelo, i.localizacao,
+                        t.cor, t.percentual_anterior, t.percentual_novo AS percentual_atual,
+                        (COALESCE(t.percentual_novo, 0) - COALESCE(t.percentual_anterior, 0)) AS diferenca,
+                        t.observacao, t.usuario, t.registrado_em AS data
+                 FROM trocas_toner t
+                 JOIN impressoras i ON i.id = t.impressora_id
+                 WHERE t.registrado_em >= datetime('now', ?)
+                 ORDER BY t.registrado_em DESC`,
+                [`-${dias} days`], (err2, manuais) => {
+                    if (err2) return next(err2);
+                    for (const m of manuais) eventos.push({ ...m, origem: 'manual' });
+                    eventos.sort((a, b) => String(b.data).localeCompare(String(a.data)));
+                    const totalManual = eventos.filter(e => e.origem === 'manual').length;
+                    const totalAutomatico = eventos.filter(e => e.origem === 'automatica').length;
+                    res.json({
+                        periodo_dias: dias,
+                        total: eventos.length,
+                        total_manual: totalManual,
+                        total_automatico: totalAutomatico,
+                        eventos
+                    });
+                }
+            );
+        }
+    );
+});
+
+app.post('/api/relatorios/trocas-toner', exigirPermissao('relatorios'), (req, res, next) => {
+    const { impressora_id, cor, percentual_anterior, percentual_novo, observacao } = req.body;
+    const impId = Number(impressora_id);
+    const corLimpa = String(cor || '').trim();
+    if (!Number.isInteger(impId) || impId <= 0) return res.status(400).json({ erro: 'Impressora inválida' });
+    if (!corLimpa) return res.status(400).json({ erro: 'Informe a cor do toner' });
+    const pctAnt = percentual_anterior === '' || percentual_anterior == null ? null : Number(percentual_anterior);
+    const pctNovo = percentual_novo === '' || percentual_novo == null ? null : Number(percentual_novo);
+    if (pctAnt != null && (pctAnt < 0 || pctAnt > 100)) return res.status(400).json({ erro: 'Percentual anterior inválido' });
+    if (pctNovo != null && (pctNovo < 0 || pctNovo > 100)) return res.status(400).json({ erro: 'Percentual novo inválido' });
+    db.get('SELECT id FROM impressoras WHERE id = ?', [impId], (err, imp) => {
+        if (err) return next(err);
+        if (!imp) return res.status(404).json({ erro: 'Impressora não encontrada' });
+        const usuario = req.body.usuario || 'Administrador';
+        db.run(
+            `INSERT INTO trocas_toner
+             (impressora_id, cor, percentual_anterior, percentual_novo, observacao, usuario)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [impId, corLimpa, pctAnt, pctNovo, String(observacao || '').trim(), usuario],
+            function(insertErr) {
+                if (insertErr) return next(insertErr);
+                res.status(201).json({ sucesso: true, id: this.lastID });
+            }
+        );
+    });
+});
+
+app.get('/api/relatorios/disponibilidade', exigirPermissao('relatorios'), (req, res, next) => {
     db.all(
         `SELECT i.id, i.nome, i.ip, i.modelo, i.localizacao,
                 COUNT(h.id) AS total_checkins,
@@ -899,7 +1184,7 @@ app.get('/api/relatorios/disponibilidade', verificarTokenAdmin, (req, res, next)
     );
 });
 
-app.get('/api/relatorios/estoque', verificarTokenAdmin, (req, res, next) => {
+app.get('/api/relatorios/estoque', exigirPermissao('relatorios'), (req, res, next) => {
     db.all(
         `SELECT e.modelo, e.insumo, e.quantidade AS estoque_atual,
                 ROUND(AVG(c.consumo_dia), 3) AS consumo_dia_medio,

@@ -575,6 +575,19 @@
   });
 
   /* ── Login ── */
+  function primeiraPagina(permissoes, perfil) {
+    if (perfil === 'admin') return 'admin.html';
+    const ordem = [
+      ['dashboard', 'admin.html'],
+      ['impressoras', 'dispositivos.html'],
+      ['estoque', 'estoque.html'],
+      ['relatorios', 'relatorios.html'],
+      ['usuarios', 'usuarios.html']
+    ];
+    const achado = ordem.find(([p]) => Array.isArray(permissoes) && permissoes.includes(p));
+    return achado ? achado[1] : 'admin.html';
+  }
+
   async function doLogin(e) {
     e.preventDefault();
     const usuario = document.getElementById('login-user').value.trim();
@@ -612,11 +625,16 @@
         return;
       }
 
-      sessionStorage.setItem('ic_token', JSON.stringify({ token: data.token, usuario: data.usuario }));
+      sessionStorage.setItem('ic_token', JSON.stringify({
+        token: data.token,
+        usuario: data.usuario,
+        perfil: data.perfil,
+        permissoes: data.permissoes || []
+      }));
       showMsg('login-msg', '✓ Acesso autorizado', 'success');
       setTimeout(() => {
         document.getElementById('loadingOverlay').classList.add('show');
-        setTimeout(() => { window.location.href = 'admin.html'; }, 400);
+        setTimeout(() => { window.location.href = primeiraPagina(data.permissoes, data.perfil); }, 400);
       }, 600);
 
     } catch {
@@ -656,11 +674,16 @@
         return;
       }
 
-      sessionStorage.setItem('ic_token', JSON.stringify({ token: data.token, usuario: data.usuario }));
+      sessionStorage.setItem('ic_token', JSON.stringify({
+        token: data.token,
+        usuario: data.usuario,
+        perfil: data.perfil,
+        permissoes: data.permissoes || []
+      }));
       showMsg('trocar-msg', '✓ Senha definida!', 'success');
       setTimeout(() => {
         document.getElementById('loadingOverlay').classList.add('show');
-        setTimeout(() => { window.location.href = 'admin.html'; }, 400);
+        setTimeout(() => { window.location.href = primeiraPagina(data.permissoes, data.perfil); }, 400);
       }, 600);
 
     } catch {

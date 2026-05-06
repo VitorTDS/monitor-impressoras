@@ -2,12 +2,13 @@ FROM node:20-alpine
 
 RUN apk add --no-cache python3 make g++
 
-WORKDIR /app
+WORKDIR /app/backend
 
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm ci --only=production
 
-COPY . .
+COPY backend ./
+COPY frontend /app/frontend
 
 RUN mkdir -p /data && chown node:node /data
 

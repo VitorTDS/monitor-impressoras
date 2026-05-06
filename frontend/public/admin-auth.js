@@ -8,9 +8,33 @@ function authHeaders() {
   return t ? { ...base, 'Authorization': 'Bearer ' + t.token } : base;
 }
 
+function hasPermission(perm) {
+  const t = getToken();
+  if (!t) return false;
+  if (t.perfil === 'admin') return true;
+  return Array.isArray(t.permissoes) && t.permissoes.includes(perm);
+}
+
+function firstAllowedPage() {
+  const order = [
+    ['dashboard', 'admin.html'],
+    ['impressoras', 'dispositivos.html'],
+    ['estoque', 'estoque.html'],
+    ['relatorios', 'relatorios.html'],
+    ['usuarios', 'usuarios.html']
+  ];
+  const found = order.find(([perm]) => hasPermission(perm));
+  return found ? found[1] : 'login.html';
+}
+
 function requireAuth() {
   const t = getToken();
   if (!t || !t.token) window.location.replace('login.html');
+}
+
+function requirePermission(perm) {
+  requireAuth();
+  if (!hasPermission(perm)) window.location.replace(firstAllowedPage());
 }
 
 function logout() {
@@ -33,8 +57,24 @@ function initClock() {
 
 function setActiveNav() {
   const page = window.location.pathname.split('/').pop() || 'admin.html';
+  const map = {
+    'admin.html':'dashboard',
+    'dashboard.html':'dashboard',
+    'dispositivos.html':'impressoras',
+    'cadastrar.html':'impressoras',
+    'tinta.html':'dashboard',
+    'estoque.html':'estoque',
+    'usuarios.html':'usuarios',
+    'relatorios.html':'relatorios'
+  };
   document.querySelectorAll('.sb-item').forEach(a => {
-    if (a.getAttribute('href') === page) a.classList.add('active');
+    const href = a.getAttribute('href');
+    const perm = map[href];
+    if (perm && !hasPermission(perm)) {
+      a.style.display = 'none';
+      return;
+    }
+    if (href === page) a.classList.add('active');
   });
 }
 

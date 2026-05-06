@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Impressoras Sobral | Usuários</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    .section-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
+    .form-card { background: var(--card); border-radius: 14px; padding: 24px; max-width: 560px; width: 100%; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .access-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
+    .access-item { border:1px solid var(--bd); border-radius:8px; padding:12px; background:var(--card); }
+    .access-label { font-size:10px; color:var(--mt); text-transform:uppercase; letter-spacing:.8px; margin-bottom:4px; }
+    .access-value { font-size:13px; font-weight:700; color:var(--tx); word-break:break-word; }
+    .perm-list { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:8px; }
+    .perm-list li { font-size:12px; color:var(--tx); display:flex; gap:8px; align-items:center; }
+    .perm-editor { border:1px solid var(--bd); border-radius:8px; padding:12px; margin:12px 0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .perm-editor label { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--tx); text-transform:none; letter-spacing:0; margin:0; }
+    .perm-editor input { width:auto; }
+    .mini-badge { border-radius:4px; padding:2px 7px; font-size:10px; font-weight:800; }
+    .mini-badge.ok { color:var(--ok); background:rgba(16,185,129,.12); }
+    .mini-badge.no { color:var(--no); background:rgba(239,68,68,.12); }
+    .mini-badge.wn { color:#f59e0b; background:rgba(245,158,11,.12); }
+    @media (max-width: 768px) {
+      .form-card { padding: 16px; }
+      .table-wrap table { font-size: 12px; }
+      .table-wrap th:nth-child(4),
+      .table-wrap td:nth-child(4) { display: none; }
+    }
+    @media (max-width: 480px) {
+      .table-wrap th:nth-child(3),
+      .table-wrap td:nth-child(3) { display: none; }
+      .access-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<script src="admin-auth.js"></script>
+<script>requirePermission('usuarios'); initTheme();</script>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:340px">
+    <h4 id="confirmTitle">Confirmar</h4>
+    <p id="confirmMsg" style="font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modalConfirm').classList.remove('open')">Cancelar</button>
+      <button class="btn-save" id="btnConfirmOk" style="background:var(--no)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalSenha">
+  <div class="modal" style="max-width:420px">
+    <h4>Alterar senha</h4>
+    <p id="senhaUserLabel" style="font-size:13px;color:var(--mt);margin-bottom:14px"></p>
+    <label>Nova senha</label>
+    <input type="password" id="senhaNova" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--tx)">
+      <input type="checkbox" id="senhaForcarTroca" checked style="width:auto"> Exigir troca no próximo login
+    </label>
+    <div id="senhaMsg" style="font-size:12px;margin:10px 0;min-height:18px"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModalSenha()">Cancelar</button>
+      <button class="btn-save" onclick="salvarSenha()">Salvar senha</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAcesso">
+  <div class="modal" style="max-width:560px">
+    <h4>Especificações de acesso</h4>
+    <div id="acessoContent"></div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="document.getElementById('modalAcesso').classList.remove('open')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-dot"></div>
+    <div><strong>Impressoras Sobral</strong><span>Gerenciamento de rede</span></div>
+  </div>
+  <nav class="sb-nav">
+    <a href="admin.html"        class="sb-item">📊 Dashboard</a>
+    <a href="dispositivos.html" class="sb-item">🖨️ Dispositivos</a>
+    <a href="cadastrar.html"    class="sb-item">➕ Cadastrar</a>
+    <a href="tinta.html"        class="sb-item">🖋️ Níveis de Tinta</a>
+    <a href="estoque.html"      class="sb-item">📦 Estoque</a>
+    <a href="usuarios.html"     class="sb-item">👥 Usuários</a>
+    <a href="relatorios.html"   class="sb-item">📈 Relatórios</a>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-avatar">👤</div>
+      <div><strong id="userLabel">—</strong><span>Administrador</span></div>
+    </div>
+    <button id="themeBtn" class="sb-theme" onclick="toggleTheme()">🌙 Escuro</button>
+    <button class="sb-logout" onclick="logout()">Sair</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="main-topbar">
+    <span class="main-title">👥 Usuários do Sistema</span>
+    <span id="clock" class="main-clock"></span>
+  </div>
+  <main class="main-content">
+  <div class="table-wrap" style="margin-bottom:28px">
+    <table>
+      <thead><tr><th>Nome</th><th>Usuario</th><th>Status</th><th>Acesso</th><th>Criado em</th><th>Acoes</th></tr></thead>
+      <tbody id="usuariosBody">
+        <tr><td colspan="6" style="text-align:center;color:var(--mt);padding:24px">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title">➕ Novo Usuário</div>
+  <div class="form-card">
+    <div class="fgrid">
+      <div><label>Nome completo</label><input type="text" id="uNome" placeholder="João Silva" autocomplete="off"></div>
+      <div><label>Usuário (login)</label><input type="text" id="uUsuario" placeholder="joao.silva" autocomplete="off"></div>
+    </div>
+    <label>Senha temporária <span style="font-weight:400;color:var(--mt);text-transform:none;letter-spacing:0">(o usuário deverá criar uma nova no primeiro acesso)</span></label>
+    <input type="password" id="uSenha" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+    <label>Perfil</label>
+    <select id="uPerfil" onchange="togglePermEditor('novo')" style="width:100%;background:var(--bg);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:10px;margin-bottom:10px">
+      <option value="admin">Administrador</option>
+      <option value="operador">Operador com permissões</option>
+    </select>
+    <div class="perm-editor" id="permsNovo"></div>
+    <div id="uMsg" style="font-size:12px;margin:8px 0;min-height:18px"></div>
+    <button class="btn-add" onclick="criarUsuario()">+ Criar Usuário</button>
+  </div>
+  </main>
+</div>
+
+<script>
+  initUserLabel(); initClock(); setActiveNav();
+
+  let _confirmCb = null;
+  let _usuariosCache = [];
+  let _senhaUserId = null;
+  let _acessoUserId = null;
+  const PERMISSOES = [
+    ['dashboard','Dashboard'],
+    ['impressoras','Impressoras'],
+    ['estoque','Estoque'],
+    ['relatorios','Relatórios'],
+    ['usuarios','Usuários'],
+    ['imprimir','Imprimir']
+  ];
+
+  function renderPermEditor(containerId, selecionadas = []) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = PERMISSOES.map(([key,label]) =>
+      `<label><input type="checkbox" value="${key}" ${selecionadas.includes(key) ? 'checked' : ''}> ${label}</label>`
+    ).join('');
+  }
+
+  function getPerms(containerId) {
+    return [...document.querySelectorAll('#' + containerId + ' input[type="checkbox"]:checked')].map(i => i.value);
+  }
+
+  function togglePermEditor(scope) {
+    const perfil = document.getElementById(scope === 'novo' ? 'uPerfil' : 'acessoPerfil')?.value || 'admin';
+    const el = document.getElementById(scope === 'novo' ? 'permsNovo' : 'permsAcesso');
+    if (el) el.style.display = perfil === 'admin' ? 'none' : 'grid';
+  }
+
+  renderPermEditor('permsNovo', PERMISSOES.map(p => p[0]));
+  togglePermEditor('novo');
+
+  function fmtData(valor, comHora = false) {
+    if (!valor) return 'Nunca';
+    const data = new Date(String(valor).replace(' ', 'T'));
+    if (Number.isNaN(data.getTime())) return String(valor);
+    return comHora ? data.toLocaleString('pt-BR') : data.toLocaleDateString('pt-BR');
+  }
+
+  function showToast(msg, erro = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.style.background = erro ? '#ef4444' : '#10b981';
+    t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function confirmar(titulo, msg, cb) {
+    document.getElementById('confirmTitle').textContent = titulo;
+    document.getElementById('confirmMsg').textContent   = msg;
+    _confirmCb = cb;
+    document.getElementById('modalConfirm').classList.add('open');
+    setTimeout(() => document.getElementById('btnConfirmOk').focus(), 150);
+  }
+
+  document.getElementById('btnConfirmOk').addEventListener('click', async () => {
+    document.getElementById('modalConfirm').classList.remove('open');
+    if (_confirmCb) { const cb = _confirmCb; _confirmCb = null; await cb(); }
+  });
+
+  document.getElementById('modalConfirm').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
+  function criarLinhaUsuario(u) {
+    const tr = document.createElement('tr');
+
+    const tdNome = document.createElement('td');
+    const strong = document.createElement('strong');
+    strong.textContent = u.nome; tdNome.appendChild(strong);
+
+    const tdUser = document.createElement('td');
+    const code   = document.createElement('code');
+    code.textContent = u.usuario; tdUser.appendChild(code);
+
+    const tdStatus = document.createElement('td');
+    const dot = document.createElement('span');
+    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;background:' + (u.ativo ? 'var(--ok)' : 'var(--no)');
+    tdStatus.appendChild(dot);
+    tdStatus.appendChild(document.createTextNode(u.ativo ? 'Ativo' : 'Inativo'));
+
+    const tdAcesso = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'mini-badge ' + (u.perfil === 'admin' ? 'ok' : 'wn');
+    badge.textContent = u.perfil === 'admin' ? 'Admin' : 'Operador';
+    tdAcesso.appendChild(badge);
+
+    const tdData = document.createElement('td');
+    tdData.textContent = fmtData(u.criado_em);
+    tdData.style.cssText = 'color:var(--mt);font-size:12px';
+
+    const tdAcoes = document.createElement('td');
+    tdAcoes.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+
+    const btnAcesso = document.createElement('button');
+    btnAcesso.className = 'btn-edit';
+    btnAcesso.textContent = 'Acessos';
+    btnAcesso.addEventListener('click', () => abrirAcessos(u.id));
+
+    const btnSenha = document.createElement('button');
+    btnSenha.className = 'btn-edit';
+    btnSenha.textContent = 'Senha';
+    btnSenha.addEventListener('click', () => abrirModalSenha(u.id));
+
+    const btnToggle = document.createElement('button');
+    btnToggle.className = 'btn-edit';
+    btnToggle.textContent = u.ativo ? 'Desativar' : 'Ativar';
+    btnToggle.addEventListener('click', () => toggleUsuario(u.id, u.ativo));
+
+    const btnDel = document.createElement('button');
+    btnDel.className = 'btn-del'; btnDel.textContent = 'x';
+    btnDel.addEventListener('click', () => removerUsuario(u.id));
+
+    tdAcoes.appendChild(btnAcesso);
+    tdAcoes.appendChild(btnSenha);
+    tdAcoes.appendChild(btnToggle);
+    tdAcoes.appendChild(btnDel);
+
+    tr.appendChild(tdNome); tr.appendChild(tdUser); tr.appendChild(tdStatus);
+    tr.appendChild(tdAcesso); tr.appendChild(tdData); tr.appendChild(tdAcoes);
+    return tr;
+  }
+
+  function buscarUsuario(id) {
+    return _usuariosCache.find(u => String(u.id) === String(id));
+  }
+
+  function abrirModalSenha(id) {
+    const u = buscarUsuario(id);
+    if (!u) return;
+    _senhaUserId = id;
+    document.getElementById('senhaUserLabel').textContent = u.nome + ' (' + u.usuario + ')';
+    document.getElementById('senhaNova').value = '';
+    document.getElementById('senhaForcarTroca').checked = true;
+    document.getElementById('senhaMsg').textContent = '';
+    document.getElementById('modalSenha').classList.add('open');
+    setTimeout(() => document.getElementById('senhaNova').focus(), 150);
+  }
+
+  function fecharModalSenha() {
+    _senhaUserId = null;
+    document.getElementById('modalSenha').classList.remove('open');
+  }
+
+  async function salvarSenha() {
+    const senha = document.getElementById('senhaNova').value;
+    const trocar_senha = document.getElementById('senhaForcarTroca').checked;
+    const msg = document.getElementById('senhaMsg');
+    msg.style.color = 'var(--no)';
+    msg.textContent = '';
+    if (!_senhaUserId) return;
+    if (!senha || senha.length < 6) {
+      msg.textContent = 'Senha deve ter ao menos 6 caracteres.';
+      return;
+    }
+    try {
+      const res = await fetch('/api/usuarios/' + _senhaUserId, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ senha, trocar_senha })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.textContent = json.erro || 'Erro ao alterar senha.';
+        return;
+      }
+      fecharModalSenha();
+      showToast('Senha alterada com sucesso.');
+      carregarUsuarios();
+    } catch {
+      msg.textContent = 'Erro de conexão.';
+    }
+  }
+
+  function abrirAcessos(id) {
+    const u = buscarUsuario(id);
+    if (!u) return;
+    _acessoUserId = id;
+    const status = u.ativo ? '<span class="mini-badge ok">Ativo</span>' : '<span class="mini-badge no">Inativo</span>';
+    const troca = u.trocar_senha ? '<span class="mini-badge wn">Troca pendente</span>' : '<span class="mini-badge ok">Senha vigente</span>';
+    const perms = Array.isArray(u.permissoes) ? u.permissoes : [];
+    document.getElementById('acessoContent').innerHTML = `
+      <div class="access-grid">
+        <div class="access-item"><div class="access-label">Nome</div><div class="access-value">${escHTML(u.nome)}</div></div>
+        <div class="access-item"><div class="access-label">Login</div><div class="access-value">${escHTML(u.usuario)}</div></div>
+        <div class="access-item"><div class="access-label">Status</div><div class="access-value">${status}</div></div>
+        <div class="access-item"><div class="access-label">Senha</div><div class="access-value">${troca}</div></div>
+        <div class="access-item"><div class="access-label">Perfil</div><div class="access-value">${u.perfil === 'admin' ? 'Administrador' : 'Operador'}</div></div>
+        <div class="access-item"><div class="access-label">Criado em</div><div class="access-value">${fmtData(u.criado_em, true)}</div></div>
+        <div class="access-item"><div class="access-label">Último login</div><div class="access-value">${fmtData(u.ultimo_login, true)}</div></div>
+      </div>
+      <div class="section-title" style="margin-top:18px">Editar permissões</div>
+      <select id="acessoPerfil" onchange="togglePermEditor('acesso')" style="width:100%;background:var(--bg);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:10px">
+        <option value="admin" ${u.perfil === 'admin' ? 'selected' : ''}>Administrador</option>
+        <option value="operador" ${u.perfil !== 'admin' ? 'selected' : ''}>Operador com permissões</option>
+      </select>
+      <div class="perm-editor" id="permsAcesso"></div>
+      <button class="btn-save" onclick="salvarAcessos()" style="margin-top:8px">Salvar permissões</button>
+    `;
+    renderPermEditor('permsAcesso', perms);
+    togglePermEditor('acesso');
+    document.getElementById('modalAcesso').classList.add('open');
+  }
+
+  async function salvarAcessos() {
+    if (!_acessoUserId) return;
+    const perfil = document.getElementById('acessoPerfil').value;
+    const permissoes = perfil === 'admin' ? PERMISSOES.map(p => p[0]) : getPerms('permsAcesso');
+    const res = await fetch('/api/usuarios/' + _acessoUserId, {
+      method:'PUT',
+      headers:authHeaders(),
+      body:JSON.stringify({ perfil, permissoes })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) { showToast(json.erro || 'Erro ao salvar permissões.', true); return; }
+    showToast('Permissões atualizadas.');
+    document.getElementById('modalAcesso').classList.remove('open');
+    carregarUsuarios();
+  }
+
+  function escHTML(s) {
+    return String(s ?? '').replace(/[&<>"']/g,
+      m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]);
+  }
+
+  async function carregarUsuarios() {
+    const res  = await fetch('/api/usuarios', { headers: authHeaders() });
+    const rows = res.ok ? await res.json() : [];
+    _usuariosCache = rows;
+    const body = document.getElementById('usuariosBody');
+    body.replaceChildren();
+    if (!rows.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 6; td.style.cssText = 'text-align:center;color:var(--mt);padding:24px';
+      td.textContent = 'Nenhum usuário cadastrado.'; tr.appendChild(td); body.appendChild(tr);
+      return;
+    }
+    rows.forEach(u => body.appendChild(criarLinhaUsuario(u)));
+  }
+
+  async function criarUsuario() {
+    const nome    = document.getElementById('uNome').value.trim();
+    const usuario = document.getElementById('uUsuario').value.trim().toLowerCase();
+    const senha   = document.getElementById('uSenha').value;
+    const perfil  = document.getElementById('uPerfil').value;
+    const permissoes = perfil === 'admin' ? PERMISSOES.map(p => p[0]) : getPerms('permsNovo');
+    const msg     = document.getElementById('uMsg');
+    msg.style.color = 'var(--no)'; msg.textContent = '';
+    if (!nome || !usuario || !senha) { msg.textContent = 'Preencha todos os campos.'; return; }
+    if (senha.length < 6) { msg.textContent = 'Senha deve ter ao menos 6 caracteres.'; return; }
+    try {
+      const res  = await fetch('/api/usuarios', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ nome, usuario, senha, perfil, permissoes })
+      });
+      const json = await res.json();
+      if (!res.ok) { msg.textContent = json.erro || 'Erro ao criar usuário.'; return; }
+      document.getElementById('uNome').value = '';
+      document.getElementById('uUsuario').value = '';
+      document.getElementById('uSenha').value = '';
+      document.getElementById('uPerfil').value = 'admin';
+      togglePermEditor('novo');
+      msg.style.color = 'var(--ok)'; msg.textContent = '✓ Usuário criado com sucesso!';
+      carregarUsuarios();
+      setTimeout(() => { msg.textContent = ''; }, 3000);
+    } catch { msg.textContent = 'Erro de conexão.'; }
+  }
+
+  async function toggleUsuario(id, ativo) {
+    await fetch('/api/usuarios/' + id, {
+      method: 'PUT', headers: authHeaders(),
+      body: JSON.stringify({ ativo: !ativo })
+    });
+    carregarUsuarios();
+  }
+
+  async function removerUsuario(id) {
+    confirmar('Remover usuário', 'Esta ação não pode ser desfeita.', async () => {
+      const res = await fetch('/api/usuarios/' + id, { method: 'DELETE', headers: authHeaders() });
+      if (!res.ok) { const j = await res.json(); showToast(j.erro || 'Erro ao remover.', true); return; }
+      carregarUsuarios();
+    });
+  }
+
+  carregarUsuarios();
+</script>
+</body>
+</html>

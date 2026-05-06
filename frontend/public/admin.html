@@ -51,7 +51,7 @@
 </head>
 <body>
 <script src="admin-auth.js"></script>
-<script>requireAuth(); initTheme();</script>
+<script>requirePermission('dashboard'); initTheme();</script>
 
 <div class="modal-overlay" id="modalAlerta" onclick="if(event.target===this)fecharModalAlerta()">
   <div class="modal-alerta">
@@ -150,8 +150,8 @@
   async function carregar() {
     try {
       const [resDash, resImps] = await Promise.all([
-        fetch('/api/dashboard'),
-        fetch('/api/impressoras')
+        fetch('/api/dashboard', { headers: authHeaders() }),
+        fetch('/api/impressoras', { headers: authHeaders() })
       ]);
       const dash = await resDash.json();
       const imps = await resImps.json();

@@ -31,7 +31,7 @@
 </head>
 <body>
 <script src="admin-auth.js"></script>
-<script>requireAuth(); initTheme();</script>
+<script>requirePermission('impressoras'); initTheme();</script>
 
 <aside class="sidebar">
   <div class="sb-brand">
@@ -215,7 +215,7 @@
     try {
       const res = await fetch('/api/impressoras', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(),
         body: JSON.stringify(data)
       });
       if (!res.ok) {

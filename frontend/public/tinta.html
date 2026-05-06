@@ -94,7 +94,7 @@
 </head>
 <body>
 <script src="admin-auth.js"></script>
-<script>requireAuth(); initTheme();</script>
+<script>requirePermission('dashboard'); initTheme();</script>
 
 <div class="loader" id="loader"><div class="spinner"></div></div>
 
@@ -196,7 +196,7 @@
     setBotoes(true);
     document.getElementById('loader').classList.add('show');
     try {
-      const res = await fetch('/api/dashboard');
+      const res = await fetch('/api/dashboard', { headers: authHeaders() });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       dadosCache = await res.json();
       renderizar();

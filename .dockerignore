@@ -1,7 +1,7 @@
-node_modules
+backend/node_modules
 *.db
 .git
-.env
-tests
+backend/.env
+backend/tests
 ecosystem.config.js
 docs

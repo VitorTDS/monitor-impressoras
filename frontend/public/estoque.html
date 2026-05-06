@@ -42,7 +42,7 @@
 </head>
 <body>
 <script src="admin-auth.js"></script>
-<script>requireAuth(); initTheme();</script>
+<script>requirePermission('estoque'); initTheme();</script>
 
 <div class="toast" id="toast"></div>
 
@@ -157,6 +157,7 @@
 
   function toggleLock(modelo) {
     if (unlockedGroups[modelo]) { lockGroup(modelo); return; }
+    if (hasPermission('estoque')) { unlockGroup(modelo); return; }
     modeloPendente = modelo;
     document.getElementById('senhaInput').value = '';
     document.getElementById('senhaErro').classList.remove('show');
@@ -237,7 +238,7 @@
     try {
       const res = await fetch('/api/estoque', {
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':`Bearer ${estoqueToken}`},
+        headers:authHeaders(),
         body:JSON.stringify({modelo:mod, insumo, quantidade:novo, estado:'Novo'})
       });
       if (!res.ok) throw new Error();
@@ -247,12 +248,12 @@
 
   function zerarTudo() {
     confirmar('Zerar todo o estoque', 'Todos os quantitativos voltarão para zero. Esta ação não pode ser desfeita.', async () => {
-      const res = await fetch('/api/estoque');
+      const res = await fetch('/api/estoque', { headers: authHeaders() });
       const est = await res.json();
       for (const item of est) {
         await fetch('/api/estoque', {
           method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':`Bearer ${estoqueToken}`},
+          headers:authHeaders(),
           body:JSON.stringify({modelo:item.modelo, insumo:item.insumo, quantidade:0, estado:'Novo'})
         });
       }
@@ -262,7 +263,10 @@
 
   async function carregar() {
     try {
-      const [resImps, resEst] = await Promise.all([fetch('/api/dashboard'), fetch('/api/estoque')]);
+      const [resImps, resEst] = await Promise.all([
+        fetch('/api/dashboard', { headers: authHeaders() }),
+        fetch('/api/estoque', { headers: authHeaders() })
+      ]);
       const imps = await resImps.json(), estoque = await resEst.json();
       const containerTinta = document.getElementById('estoqueContainerTinta');
       const containerToner = document.getElementById('estoqueContainerToner');

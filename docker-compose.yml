@@ -1,6 +1,8 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     ports:
       - "3000:3000"
     volumes:
@@ -8,7 +10,7 @@ services:
     environment:
       DATABASE_PATH: /data/banco.db
     env_file:
-      - .env
+      - backend/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]

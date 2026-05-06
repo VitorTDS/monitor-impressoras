@@ -1,6 +1,8 @@
-node_modules/
+backend/node_modules/
 *.db
 .claude/
 *.log
 ecosystem.config.js
-.env
+backend/.env
+.playwright-mcp/
+.superpowers/

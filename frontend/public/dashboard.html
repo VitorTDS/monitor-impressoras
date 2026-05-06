@@ -101,8 +101,9 @@
   </main>
 </div>
 
+<script src="admin-auth.js"></script>
 <script>
-  initClock(); setActiveNav();
+  requirePermission('dashboard'); initTheme(); initClock(); setActiveNav();
 
   let dadosCache  = [];
   let filtroAtivo = 'all';
@@ -146,7 +147,7 @@
     btn.textContent = 'Atualizando...';
     document.getElementById('loader').classList.add('show');
     try {
-      const res = await fetch('/api/dashboard');
+      const res = await fetch('/api/dashboard', { headers: authHeaders() });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       dadosCache = await res.json();
       renderizar();

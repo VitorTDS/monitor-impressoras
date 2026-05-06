@@ -24,7 +24,7 @@
 </head>
 <body>
 <script src="admin-auth.js"></script>
-<script>requireAuth(); initTheme();</script>
+<script>requirePermission('impressoras'); initTheme();</script>
 
 <div class="toast" id="toast"></div>
 <div class="loader" id="loader"><div class="spinner"></div></div>
@@ -155,7 +155,7 @@
   async function carregar() {
     document.getElementById('loader').classList.add('show');
     try {
-      const res = await fetch('/api/impressoras');
+      const res = await fetch('/api/impressoras', { headers: authHeaders() });
       todosImps = await res.json();
       renderizar(todosImps);
     } catch {
@@ -210,7 +210,7 @@
     if (!modelo) { showToast('Preencha o Modelo/Setor', true); return; }
     try {
       const res = await fetch(`/api/impressoras/${id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: authHeaders(),
         body: JSON.stringify({ nome: fabricante, modelo, ip, localizacao })
       });
       if (!res.ok) throw new Error();
@@ -221,7 +221,7 @@
 
   function del(id) {
     confirmar('Remover impressora', 'Esta ação não pode ser desfeita.', async () => {
-      await fetch(`/api/impressoras/${id}`, { method: 'DELETE' });
+      await fetch(`/api/impressoras/${id}`, { method: 'DELETE', headers: authHeaders() });
       showToast('Impressora removida'); carregar();
     });
   }
@@ -240,7 +240,7 @@
     if (!conteudo) { showToast('Digite algo para imprimir!', true); return; }
     try {
       const res  = await fetch(`/api/impressoras/${id}/imprimir`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ conteudo })
       });
       const json = await res.json();

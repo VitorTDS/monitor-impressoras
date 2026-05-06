@@ -7,8 +7,8 @@ Origem: projeto **Tinta Branca** (monitor-impressoras).
 
 ## Checklist de adoção
 
-1. Copie `login.template.html` para `public/login.html` do novo projeto
-2. Copie a `logo.png` circular da empresa para `public/logo.png`
+1. Copie `login.template.html` para `frontend/public/login.html` do novo projeto
+2. Copie a `logo.png` circular da empresa para `frontend/public/logo.png`
 3. Edite as 10 variáveis marcadas com `{{...}}` (veja tabela abaixo)
 4. Ajuste os 4 parâmetros JS no topo do `<script>`
 5. Troque o SVG de ícone por algo temático do novo sistema
